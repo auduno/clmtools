@@ -1,23 +1,23 @@
 from sklearn.svm import SVR, SVC
 from sklearn.linear_model import LogisticRegression
 from PIL import Image
-import ..config
-import random
+import config
 from numpy import array, sqrt, square
 from numpy.linalg import norm
-import numpy
-import pickle
+import numpy, pickle, random
+import os
 from os import listdir
 from os.path import isfile, join
 from scipy.ndimage.filters import sobel
 
+data_folder = config.data_folder
 num_patches = config.num_patches
 patch_size = config.patch_size
 
 def build_patches(data, c_value=None, gradient=False):
 	filters = []
-	#for r in range(0, num_patches):
-	for r in [23]:
+	#for r in [23]:
+	for r in range(0, num_patches):
 		print "training patch:"+str(r)
 		positives = []
 		negatives = []
@@ -25,8 +25,8 @@ def build_patches(data, c_value=None, gradient=False):
 		# load positive examples
 		i = 0
 		for filename, values in data.iteritems():
-			im = Image.open("./cropped/"+filename, "r")
-			mask = Image.open("./cropped/"+filename[:-4]+"_mask.bmp", "r")
+			im = Image.open( os.path.join(data_folder, "cropped/", filename) , "r")
+			mask = Image.open( os.path.join(data_folder, "cropped/", filename[:-4]+"_mask.bmp") , "r")
 			
 			# convert image to grayscale
 			im = im.convert("L")
@@ -100,9 +100,9 @@ def build_patches(data, c_value=None, gradient=False):
 			i += 1
 		
 		# get negative examples from landscape images
-		negfiles = [f for f in listdir("./negatives") if isfile(join("./negatives",f))]
+		negfiles = [f for f in listdir( os.path.join(data_folder, "negatives/")  ) if isfile( os.path.join(data_folder, "negatives/",f) )]
 		for filename in negfiles:
-			im = Image.open(join("./negatives/", filename), "r")
+			im = Image.open( os.path.join(data_folder, "negatives/", filename) , "r")
 			im = im.convert("L")
 			if gradient:
 				diff = ((patch_size+1)/2)
@@ -173,7 +173,7 @@ def build_patches(data, c_value=None, gradient=False):
 		coefficients = (normalize(coefficients)*255.).astype("uint8")
 		coefficients = coefficients.reshape((patch_size,patch_size))
 		coefImg = Image.fromarray(coefficients)
-		coefImg.save("./svmImages/svm"+str(r)+".bmp")
+		coefImg.save( os.path.join(data_folder, "svmImages/", "svm"+str(r)+".bmp") )
 		print "bias : "+str(clf.intercept_[0])
 		#errors = []
 		#import math

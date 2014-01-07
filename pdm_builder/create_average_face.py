@@ -1,16 +1,17 @@
 import numpy as np
-from buildlib import preprocess
-import pickle, skimage
+from buildlib import preprocess, config
+import pickle, skimage, os
 from skimage.transform import PiecewiseAffineTransform, warp
 from skimage.io import imread, Image, imsave
-import config
+
+data_folder = config.data_folder
 
 data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 
-dp = {'data_pca' : data_pca, 'data_patches' : data_patches, 'meanshape' : meanshape, 'cropsize' : cropsize}
-fi = open("out.data", "w")
-pickle.dump(dp, fi)
-fi.close()
+#dp = {'data_pca' : data_pca, 'data_patches' : data_patches, 'meanshape' : meanshape, 'cropsize' : cropsize}
+#fi = open("out.data", "w")
+#pickle.dump(dp, fi)
+#fi.close()
 
 #fi = open("out.data", "r")
 #data = pickle.load(fi)
@@ -35,7 +36,8 @@ imlen = len(data_pca.keys())
 count = 0
 for filename, values in data_pca.iteritems():
   # warp to meanshape
-  im = imread("./cropped/"+filename)
+  im = imread( os.path.join(data_folder, "cropped/", filename) )
+  
   tform = PiecewiseAffineTransform()
   tform.estimate(meanshape, values+[cropsize[0]/2,cropsize[1]/2])
   # store in array

@@ -1,4 +1,4 @@
-from buildlib import preprocess
+from buildlib import preprocess, config
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -8,14 +8,16 @@ from numpy import row_stack, any, isnan, sum, diag, cov, mean, dot, trace
 from numpy.linalg import qr
 import numpy, math
 
+data_folder = config.data_folder
+
 emotions = {}
 
 # load emotions
-files = os.listdir("./emotions/")
+files = os.listdir( os.path.join(data_folder,"emotions/") )
 for f in files:
   emotion = f.split(".")[0]
   emotions[emotion] = []
-  fi = open("./emotions/"+f,"r")
+  fi = open( os.path.join(data_folder,"emotions/",f),"r")
   for lines in fi:
     emotions[emotion].append(lines.strip()[0:-4]+".bmp")
     emotions[emotion].append(lines.strip()[0:-4]+"_m.bmp")
@@ -23,20 +25,20 @@ for f in files:
 
 # create pca model
 # preprocess data
-#data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(coordinate_file, mirror = True)
+data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 
 #dp = {'data_pca' : data_pca, 'data_patches' : data_patches, 'meanshape' : meanshape, 'cropsize' : cropsize}
 #fi = open("out.data", "w")
 #pickle.dump(dp, fi)
 #fi.close()
 
-fi = open("out.data", "r")
-data = pickle.load(fi)
-fi.close()
-data_pca = data['data_pca']
-data_patches = data['data_patches']
-meanshape = data['meanshape']
-cropsize = data['cropsize']
+#fi = open("out.data", "r")
+#data = pickle.load(fi)
+#fi.close()
+#data_pca = data['data_pca']
+#data_patches = data['data_patches']
+#meanshape = data['meanshape']
+#cropsize = data['cropsize']
 
 # build pca model
 data = [d.flatten() for d in data_pca.values() if not any(isnan(d))]

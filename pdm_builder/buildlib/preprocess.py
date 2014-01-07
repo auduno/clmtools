@@ -1,7 +1,8 @@
 import numpy, os
 from numpy import vstack, mean
 from PIL import Image
-import ..config, procrustes
+import config
+import procrustes
 
 mirror_map = config.mirror_map
 num_patches = config.num_patches
@@ -62,7 +63,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		mirrors = []
 		for c in range(0, len(coordinates)):
 			# load image
-			im = Image.open(config.data_folder+filenames[c], "r")
+			im = Image.open(config.images+filenames[c], "r")
 			# get imagesize
 			imsize = im.size
 			m = [coordinates[c][mirror_map[r]] for r in range(0, num_patches)]
@@ -166,7 +167,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		# load image
 		filename = lines.split(";")[0]
 		#filename = lines.split("\t")[0]
-		im = Image.open(config.data_folder+filename, "r")
+		im = Image.open(config.images+filename, "r")
 		if useNotVisiblePoints:
 			present_coord = [r for r in range(0, num_patches)]
 		else:
@@ -208,7 +209,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 			# load image
 			#filename = lines.split("\t")[0]
 			filename = lines.split(";")[0]
-			im = Image.open(config.data_folder+filename, "r")
+			im = Image.open(config.images+filename, "r")
 			
 			if useNotVisiblePoints:
 				present_coord = [r for r in range(0, num_patches)]

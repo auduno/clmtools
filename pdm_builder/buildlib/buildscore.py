@@ -1,8 +1,13 @@
 import numpy, random
 from sklearn.svm import SVR
+import os
 from os import listdir
 from os.path import isfile, join
 from PIL import Image
+import config
+
+cropped_image_folder = config.cropped_image_folder
+data_folder = config.data_folder
 
 def getScoring(data, mean):
 
@@ -22,7 +27,7 @@ def getScoring(data, mean):
 	i = 0
 	print "getting positive examples from face images"
 	for filename, values in data.iteritems():
-		im = Image.open("./cropped/"+filename, "r")
+		im = Image.open(os.path.join(cropped_image_folder, filename), "r")
 		
 		# convert image to grayscale
 		im = im.convert("L")
@@ -36,7 +41,7 @@ def getScoring(data, mean):
 		p_crop = p_crop.resize((scoringmodelWidth,scoringmodelHeight),Image.BILINEAR)
 
 		p_crop_img = Image.fromarray(((normalize(numpy.array(p_crop))*255.).astype("uint8")))
-		p_crop_img.save("./pcropped/svm"+filename+".bmp")
+		p_crop_img.save(os.path.join(data_folder, "pcropped/", filename+"_mask.bmp"))
 		
 		# do log of images
 		#p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1.0)
@@ -73,9 +78,9 @@ def getScoring(data, mean):
 
 	print "getting negative examples from landscape images"
 	# get negative examples from landscape images
-	negfiles = [f for f in listdir("./negatives") if isfile(join("./negatives",f))]
+	negfiles = [f for f in listdir( os.path.join(data_folder, "negatives/")  ) if isfile( os.path.join(data_folder, "negatives/",f) )]
 	for filename in negfiles:
-		im = Image.open(join("./negatives/", filename), "r")
+		im = Image.open( os.path.join(data_folder, "negatives/", filename) , "r")
 		im = im.convert("L")
 		for nr in range(0,10):
 			x = random.randint(0, im.size[0]-mean_width)
@@ -132,7 +137,7 @@ def getScoring(data, mean):
 	coefficients = ((normalize(-(coefficients+clf.intercept_)))*255.).astype("uint8")
 	coefficients = coefficients.reshape((scoringmodelHeight,scoringmodelWidth))
 	coefImg = Image.fromarray(coefficients)
-	coefImg.save("./svmImages/svmScoring.bmp")
+	coefImg.save( os.path.join(data_folder, "svmImages/", "svmScoring.bmp") )
 
 	#errors = []
 	#import math

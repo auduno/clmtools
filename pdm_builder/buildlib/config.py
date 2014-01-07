@@ -34,9 +34,10 @@ patch_size = 11
 
 # raw image folder
 data_folder = "./data/"
+images = "./data/images/"
 annotations = "./data/annotations.csv"
 
 # folder image
-cropped_image_folder = "./cropped/"
+cropped_image_folder = "./data/cropped/"
 
 input_image_width = 480

@@ -1,5 +1,6 @@
 from PIL import Image
-import ..config, random
+import config
+import random
 from numpy import array, sqrt, square, fft, mean, zeros
 from numpy.linalg import norm
 from numpy.ma import conjugate
