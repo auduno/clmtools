@@ -1,7 +1,7 @@
 from sklearn.svm import SVR, SVC
 from sklearn.linear_model import LogisticRegression
 from PIL import Image
-import config
+import ..config
 import random
 from numpy import array, sqrt, square
 from numpy.linalg import norm

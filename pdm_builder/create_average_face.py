@@ -1,11 +1,11 @@
 import numpy as np
-import preprocess, pickle, skimage
+from buildlib import preprocess
+import pickle, skimage
 from skimage.transform import PiecewiseAffineTransform, warp
 from skimage.io import imread, Image, imsave
+import config
 
-coordinate_file = "./data.csv"
-
-data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(coordinate_file, mirror = True)
+data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 
 dp = {'data_pca' : data_pca, 'data_patches' : data_patches, 'meanshape' : meanshape, 'cropsize' : cropsize}
 fi = open("out.data", "w")
@@ -48,7 +48,7 @@ for filename, values in data_pca.iteritems():
 avim /= imlen
 avim *= 255  
 avim = avim.astype(np.uint8)
-imsave("./averageface/average.bmp", Image(avim))
+imsave("./average.bmp", Image(avim))
 # for all in array
   # average
   

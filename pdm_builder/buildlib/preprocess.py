@@ -1,7 +1,7 @@
 import numpy, os
 from numpy import vstack, mean
 from PIL import Image
-import config, procrustes
+import ..config, procrustes
 
 mirror_map = config.mirror_map
 num_patches = config.num_patches

@@ -1,9 +1,9 @@
-import preprocess, os
+from buildlib import preprocess
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import cross_validation
-import pickle, json
+import pickle, json, os
 from numpy import row_stack, any, isnan, sum, diag, cov, mean, dot, trace
 from numpy.linalg import qr
 import numpy, math

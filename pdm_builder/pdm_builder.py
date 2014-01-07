@@ -1,35 +1,31 @@
-import preprocess
+from buildlib import preprocess, buildshape
 import config
-import buildshape
-#from buildpatch_mosse import build_patches
-from buildpatch import build_patches
+#from buildlab.buildpatch_mosse import build_patches
+from buildlab.buildpatch import build_patches
+from buildlab.buildscore import getScoring
 import pickle
 import numpy, json
-from buildscore import getScoring
 
 buildPatches = True
 buildScoring = True
 
-coordinate_file = "./data.csv"
-
 # preprocess data
-#data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(coordinate_file, mirror = True)
+data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 
 #dp = {'data_pca' : data_pca, 'data_patches' : data_patches, 'meanshape' : meanshape, 'cropsize' : cropsize}
 #fi = open("out.data", "w")
 #pickle.dump(dp, fi)
 #fi.close()
 
-fi = open("out.data", "r")
-data = pickle.load(fi)
-fi.close()
-data_pca = data['data_pca']
-data_patches = data['data_patches']
-meanshape = data['meanshape']
-cropsize = data['cropsize']
+#fi = open("out.data", "r")
+#data = pickle.load(fi)
+#fi.close()
+#data_pca = data['data_pca']
+#data_patches = data['data_patches']
+#meanshape = data['meanshape']
+#cropsize = data['cropsize']
 
 # build shape model
-#eigenVectors, eigenValues = buildshape.pca(data_pca.values(), num_components=7)
 eigenVectors, eigenValues = buildshape.pca(data_pca.values(), num_components=24)
 #eigenVectors, eigenValues = buildshape.spca(data_pca.values(), num_components=10, alpha=0.5)
 mean = [numpy.mean(column) for column in meanshape.T]
@@ -59,11 +55,8 @@ if buildScoring:
 	model['scoring'] = scoring
 model['shapeModel'] = {}
 model['shapeModel']['eigenVectors'] = eigenVectors.T.tolist()
-#model['shapeModel']['eigenValues'] = eigenValues.flatten().tolist()
 model['shapeModel']['eigenValues'] = eigenValues
-#model['shapeModel']['eigenValues'] = eigenValues.tolist()
 model['shapeModel']['meanShape'] = meanshape.tolist()
-#model['shapeModel']['numEvalues'] = eigenValues.shape[0]
 model['shapeModel']['numEvalues'] = len(eigenValues)
 model['shapeModel']['numPtsPerSample'] = meanshape.shape[0]
 
@@ -78,7 +71,7 @@ except:
 
 model['path'] = config.path
 
-of = open("filter.js","w")
+of = open("model.js","w")
 of.write("var pModel = ")
 of.write(json.dumps(model, indent=2))
 of.write(";\n")
