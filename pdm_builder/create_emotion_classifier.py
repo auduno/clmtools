@@ -1,12 +1,11 @@
+import pickle, json, os, numpy, math
 from buildlib import preprocess, config
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import cross_validation
-import pickle, json, os
 from numpy import row_stack, any, isnan, sum, diag, cov, mean, dot, trace
 from numpy.linalg import qr
-import numpy, math
 
 data_folder = config.data_folder
 
@@ -23,7 +22,6 @@ for f in files:
     emotions[emotion].append(lines.strip()[0:-4]+"_m.bmp")
   fi.close()
 
-# create pca model
 # preprocess data
 data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 

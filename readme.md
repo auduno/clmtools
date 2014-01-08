@@ -1,14 +1,14 @@
-pdm tools
+clmtools
 ======
 
 This is a collection of tools for building face-models for [clmtrackr](http://github.com/auduno/clmtrackr/). This includes:
-* Annotater for face images
+* Annotater for images
 * Annotations for some images in the [MUCT](www.milbo.org/muct/) dataset
 * Model builder / trainer
 * Model viewer
 * Emotion classification builder
 
-The intention is to add annotations for more images than the muct dataset over time.
+Note the annotations included here and the ones used in clmtrackr are slightly modified from the ones included int the MUCT dataset. The intention is to add annotations for more images than the MUCT dataset over time.
 
 Python dependencies for pdm_builder is:
 * numpy

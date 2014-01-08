@@ -1,13 +1,17 @@
+import pickle, numpy, json, os
 from buildlib import preprocess, buildshape, config
 #from buildlib.buildpatch_mosse import build_patches
 from buildlib.buildpatch import build_patches
 from buildlib.buildscore import getScoring
-import pickle
-import numpy, json
 
 buildPatches = True
 buildScoring = True
 cleanUp = True
+
+# create some needed folders
+for folder in ["cropped", "pcropped", "svmImages"]:
+  if not os.path.exists(os.path.join(config.data_folder, folder)):
+    os.makedirs(os.path.join(config.data_folder, folder))
 
 # preprocess data
 data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
@@ -44,7 +48,6 @@ meanshape = ((meanshape-mean)+[cropsize[0]/2,cropsize[1]/2])
 
 if buildPatches:
 	# build patch model
-	#patchModel = build_patches(data_patches, 0.1, False)
 	patchModel = build_patches(data_patches, 0.00000001, False)
 
 # store
@@ -80,9 +83,6 @@ of.close()
 
 if cleanUp:
   import shutil
-  # delete /data/cropped folder
-  shutil.rmtree(os.path.join(data_folder, "cropped/"))
-  # delete /data/pcropped folder
-  shutil.rmtree(os.path.join(data_folder, "pcropped/"))
-  # delete /data/svmImages
-  shutil.rmtree(os.path.join(data_folder, "svmImages/"))
+  for folder in ["cropped", "pcropped", "svmImages"]:
+    if os.path.exists(os.path.join(config.data_folder, folder)):
+      shutil.rmtree(os.path.join(config.data_folder, folder))

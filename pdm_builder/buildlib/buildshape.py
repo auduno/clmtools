@@ -1,9 +1,10 @@
+import numpy, math
+
 from sklearn.decomposition import PCA
 from sklearn.decomposition import SparsePCA
 from sklearn.linear_model import ridge_regression
 from numpy import row_stack, any, isnan, sum, diag, cov, mean, dot, trace
 from numpy.linalg import qr
-import numpy, math
 
 def pca(data, num_components=7):
 		# creates a matrix with principal component analysis

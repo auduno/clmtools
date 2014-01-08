@@ -1,10 +1,15 @@
+import pickle, skimage, os
 import numpy as np
 from buildlib import preprocess, config
-import pickle, skimage, os
 from skimage.transform import PiecewiseAffineTransform, warp
 from skimage.io import imread, Image, imsave
 
 data_folder = config.data_folder
+cleanUp = True
+
+# create some needed folders
+if not os.path.exists(os.path.join(config.data_folder, "cropped")):
+  os.makedirs(os.path.join(config.data_folder, "cropped"))
 
 data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
 
@@ -24,7 +29,7 @@ data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annot
 # get meanshape
 mean = [np.mean(column) for column in meanshape.T]
 for k,v in data_pca.iteritems():
-		data_pca[k] = (v+meanshape)-mean
+	data_pca[k] = (v+meanshape)-mean
 
 meanshape = ((meanshape-mean)+[cropsize[0]/2,cropsize[1]/2])
 
@@ -51,7 +56,8 @@ avim /= imlen
 avim *= 255  
 avim = avim.astype(np.uint8)
 imsave("./average.bmp", Image(avim))
-# for all in array
-  # average
-  
-# write out
+
+if cleanUp:
+  import shutil
+  if os.path.exists(os.path.join(config.data_folder, "cropped")):
+    shutil.rmtree(os.path.join(config.data_folder, "cropped"))

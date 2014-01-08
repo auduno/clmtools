@@ -1,15 +1,16 @@
-import numpy, random
+import numpy, random, os, config
+
 from sklearn.svm import SVR
-import os
 from os import listdir
 from os.path import isfile, join
 from PIL import Image
-import config
 
-cropped_image_folder = config.cropped_image_folder
 data_folder = config.data_folder
 
 def getScoring(data, mean):
+	"""
+	Create a logistic regression filter for scoring how close the tracking is to the face
+	"""
 
 	positives = []
 	negatives = []
@@ -27,7 +28,7 @@ def getScoring(data, mean):
 	i = 0
 	print "getting positive examples from face images"
 	for filename, values in data.iteritems():
-		im = Image.open(os.path.join(cropped_image_folder, filename), "r")
+		im = Image.open(join(data_folder, "cropped/", filename), "r")
 		
 		# convert image to grayscale
 		im = im.convert("L")
@@ -41,7 +42,7 @@ def getScoring(data, mean):
 		p_crop = p_crop.resize((scoringmodelWidth,scoringmodelHeight),Image.BILINEAR)
 
 		p_crop_img = Image.fromarray(((normalize(numpy.array(p_crop))*255.).astype("uint8")))
-		p_crop_img.save(os.path.join(data_folder, "pcropped/", filename+"_mask.bmp"))
+		p_crop_img.save(join(data_folder, "pcropped/", filename+"_mask.bmp"))
 		
 		# do log of images
 		#p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1.0)
@@ -55,10 +56,10 @@ def getScoring(data, mean):
 	
 	print "getting negative examples from face images"
 	# get negative examples from face images
-	negfiles = [f for f in listdir("./data") if isfile(join("./data",f))]
+	negfiles = [f for f in listdir(join(data_folder , "images/")) if isfile(join(data_folder, "images/",f))]
 	for filename in negfiles:
 		if filename.endswith(".jpg") or filename.endswith(".png"):
-			im = Image.open(join("./data/", filename), "r")
+			im = Image.open(join(data_folder, "images/", filename), "r")
 			im = im.convert("L")
 			ranwidth = int(round(im.size[0]*0.3))
 			ranheight = int(round(im.size[1]*0.3))
@@ -78,9 +79,9 @@ def getScoring(data, mean):
 
 	print "getting negative examples from landscape images"
 	# get negative examples from landscape images
-	negfiles = [f for f in listdir( os.path.join(data_folder, "negatives/")  ) if isfile( os.path.join(data_folder, "negatives/",f) )]
+	negfiles = [f for f in listdir( join(data_folder, "negatives/")  ) if isfile( join(data_folder, "negatives/",f) )]
 	for filename in negfiles:
-		im = Image.open( os.path.join(data_folder, "negatives/", filename) , "r")
+		im = Image.open( join(data_folder, "negatives/", filename) , "r")
 		im = im.convert("L")
 		for nr in range(0,10):
 			x = random.randint(0, im.size[0]-mean_width)
@@ -133,11 +134,11 @@ def getScoring(data, mean):
 	clf.fit(features, labels)
 	
 	# optionally store filters as normalized images, for validation
-	coefficients = clf.coef_
-	coefficients = ((normalize(-(coefficients+clf.intercept_)))*255.).astype("uint8")
-	coefficients = coefficients.reshape((scoringmodelHeight,scoringmodelWidth))
-	coefImg = Image.fromarray(coefficients)
-	coefImg.save( os.path.join(data_folder, "svmImages/", "svmScoring.bmp") )
+	#coefficients = clf.coef_
+	#coefficients = ((normalize(-(coefficients+clf.intercept_)))*255.).astype("uint8")
+	#coefficients = coefficients.reshape((scoringmodelHeight,scoringmodelWidth))
+	#coefImg = Image.fromarray(coefficients)
+	#coefImg.save( join(data_folder, "svmImages/", "svmScoring.bmp") )
 
 	#errors = []
 	#import math

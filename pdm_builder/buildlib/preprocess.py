@@ -1,21 +1,21 @@
-import numpy, os
+import numpy, os, config, procrustes
 from numpy import vstack, mean
 from PIL import Image
-import config
-import procrustes
 
 mirror_map = config.mirror_map
 num_patches = config.num_patches
 modelwidth = config.modelwidth
 patch_size = config.patch_size
-cropped_image_folder = config.cropped_image_folder
 input_image_width = config.input_image_width
+data_folder = config.data_folder
 
 def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
-	# Preprocessing of images and coordinate input:
-	#		-procrustes analysis
-	#		-cropping and aligning of images
-	#		-optional mirroring
+	"""
+	Preprocessing of images and coordinate input:
+	*optional mirroring
+	*procrustes analysis
+	*cropping and aligning of images
+	"""
 	
 	# read in coordinates
 	coordinates = []
@@ -23,41 +23,25 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 	not_visible = []
 	fi = open(coordfiles, "r")
 	for lines in fi:
-		#li = lines.split("\t")
 		li = lines.strip().split(";")
 		
 		coor = []
 		not_visible_coor = []
 		filenames.append(li[0])
-		#if li[0] == 'i033sb-fn.jpg':
-		#	import pdb;pdb.set_trace()
+
 		for r in xrange(0, num_patches):
 			i = (r*3)+1
-			#if li[i] == "0":
-			#		visible_coor.append(True)
-			#else:
-			#		visible_coor.append(False)
-			#coor.append(float(li[i+1]))
-			#coor.append(float(li[i+2]))
-			
-			#if li[i+2] == "true":
-			#		not_visible_coor.append(True)
-			#else:
-			#		not_visible_coor.append(False)
-			
 			if li[i+2] == "false":
 				not_visible_coor.append(r)
-
 			coor.append(float(li[i]))
 			coor.append(float(li[i+1]))
 		
-		#coor = [float(x) for x in lines.strip().split(" ")]
-		#coor = [numpy.nan if x == 0.0 else x for x in coor]
 		single_coor = numpy.array(coor).reshape((num_patches,2))
 		coordinates.append(single_coor)
 		not_visible.append(not_visible_coor)
 	fi.close()
 	
+	# mirror the points around vertical axis and use those also
 	if mirror:
 		# create mirror coordinates according to some map in config
 		mirrors = []
@@ -78,8 +62,10 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 	# procrustes analysis of coordinates
 	procrustes_distance = 1000.0
 	# TODO: check that the first coordinate has all coordinates
-	#meanshape = coordinates[0]
-	meanshape = coordinates[5]
+	
+	# TODO : we should rotate the meanshape (either at the beginning or the end) so that it's symmetrical
+	
+	meanshape = coordinates[0]
 	while procrustes_distance > 20.0:
 		aligned_coordinates = [[] for i in range(num_patches)]
 		for c in coordinates:
@@ -147,9 +133,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		max_y = max(numpy.max(c[:,1]), max_y)
 	
 	min_half_width = max(mean_x-min_x, max_x-mean_x) + ((patch_size-1)/2) + 2
-	#min_half_width = max(mean_x-min_x, max_x-mean_x)
 	min_half_height = max(mean_y-min_y, max_y-mean_y) + ((patch_size-1)/2) + 2
-	#min_half_height = max(mean_y-min_y, max_y-mean_y)
 	min_half_width = int(min_half_width)
 	min_half_height = int(min_half_height)
 	
@@ -166,7 +150,6 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 	for lines in fi:
 		# load image
 		filename = lines.split(";")[0]
-		#filename = lines.split("\t")[0]
 		im = Image.open(config.images+filename, "r")
 		if useNotVisiblePoints:
 			present_coord = [r for r in range(0, num_patches)]
@@ -192,12 +175,12 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		mask = mask.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 		# convert to boolean
 		mask = mask.convert('L')
-		mask.save(os.path.join(cropped_image_folder, os.path.splitext(filename)[0]+"_mask.bmp"))
+		mask.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_mask.bmp"))
 		
 		# use pil im.transform to crop and scale faces from images
 		im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 		# save cropped images to output folder with text 
-		im.save(os.path.join(cropped_image_folder, os.path.splitext(filename)[0]+".bmp"))
+		im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+".bmp"))
 		cropped_filenames.append(os.path.splitext(filename)[0]+".bmp")
 		i += 1
 	fi.close()
@@ -207,7 +190,6 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		for lines in fi:
 			#do the same stuff for mirrored images
 			# load image
-			#filename = lines.split("\t")[0]
 			filename = lines.split(";")[0]
 			im = Image.open(config.images+filename, "r")
 			
@@ -236,20 +218,19 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 			mask = mask.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 			# convert to boolean
 			mask = mask.convert('L')
-			mask.save(os.path.join(cropped_image_folder, os.path.splitext(filename)[0]+"_m_mask.bmp"))
+			mask.save(os.path.join(data_folder, "cropped/" , os.path.splitext(filename)[0]+"_m_mask.bmp"))
 
 			# use pil im.transform to crop and scale faces from images
 			im = im.transpose(Image.FLIP_LEFT_RIGHT)
 			im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 			# save cropped images to output folder with text 
-			im.save(os.path.join(cropped_image_folder, os.path.splitext(filename)[0]+"_m.bmp"))
+			im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_m.bmp"))
 			cropped_filenames.append(os.path.splitext(filename)[0]+"_m.bmp")
 			i += 1
 		fi.close()
 	
 	# output new coordinates
 	new_coordinates = []
-	#mean_meanshape = [mean(column) for column in meanshape.T]
 	for c in coordinates_final:
 		# mark coordinate files where the mark is occluded in some way
 		new_coordinates.append(c - meanshape)
@@ -262,8 +243,6 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 	# TODO : create duplicate matrix
 	data_patches = {}
 	for r in range(0, len(new_coordinates)):
-		#if cropped_filenames[r] == 'i033sb-fn.bmp':
-		#	import pdb;pdb.set_trace()
 		coord = numpy.copy(new_coordinates[r])
 		if useNotVisiblePoints:
 			# set not visible points to nan
