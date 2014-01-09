@@ -50,7 +50,7 @@ if buildPatches:
 	# build patch model
 	patchModel = build_patches(data_patches, 0.00000001, False)
 
-# store
+# store the model
 model = {}
 if buildPatches:
 	model['patchModel'] = patchModel
@@ -63,16 +63,11 @@ model['shapeModel']['eigenValues'] = eigenValues
 model['shapeModel']['meanShape'] = meanshape.tolist()
 model['shapeModel']['numEvalues'] = len(eigenValues)
 model['shapeModel']['numPtsPerSample'] = meanshape.shape[0]
-
-try:
-  model['shapeModel']['nonRegularizedVectors'] = [0]
-  model['hints'] = {}
-  model['hints']['leftEye'] = meanshape[27,:].tolist()
-  model['hints']['rightEye'] = meanshape[32,:].tolist()
-  model['hints']['nose'] = meanshape[62,:].tolist()
-except:
-  import pdb;pdb.set_trace()
-
+model['shapeModel']['nonRegularizedVectors'] = [0]
+model['hints'] = {}
+model['hints']['leftEye'] = meanshape[27,:].tolist()
+model['hints']['rightEye'] = meanshape[32,:].tolist()
+model['hints']['nose'] = meanshape[62,:].tolist()
 model['path'] = config.path
 
 of = open("model.js","w")
