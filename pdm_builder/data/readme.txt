@@ -1,3 +1,0 @@
-training images for the annotations can be downloaded from https://code.google.com/p/muct/downloads/list
-download muct-e-jpg-v1.tar.gz, muct-c-jpg-v1.tar.gz, muct-b-jpg-v1.tar.gz and muct-a-jpg-v1.tar.gz
-unzip the files and put all training images into the folder "/data/images"

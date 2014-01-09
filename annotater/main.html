@@ -52,8 +52,8 @@
 <body>
   <canvas id="sketch" width="138" height="138"></canvas>
   <input type="file" id="files" name="files[]" multiple />
-  <input type="button" value="back" id="back"/>
-  <input type="button" value="forward" id="forward"/>
+  <input type="button" value="prev" id="back"/>
+  <input type="button" value="next" id="forward"/>
   <input type="button" value="save file" id="savefile"/>
   <input type="button" value="clear all data" id="cleardata"/>
   <input type="button" value="manually select face" id="manualselect"/>
@@ -103,7 +103,7 @@
   <script>
     document.getElementById('back').addEventListener("click", function() {prevImage();});
     document.getElementById('forward').addEventListener("click", function() {nextImage();});
-    document.getElementById('savefile').addEventListener("click", function() {storeToCSV("test.csv");});
+    document.getElementById('savefile').addEventListener("click", function() {storeToCSV("annotations.csv");});
     document.getElementById('cleardata').addEventListener("click", function() {localStorage.clear();});
     document.getElementById('manualselect').addEventListener("click", function() {selectBox();});
     document.getElementById('exportCoord').addEventListener("click", function() {var te = exportToString();document.getElementById('coordinates').innerHTML = te;});
