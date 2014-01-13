@@ -39,7 +39,7 @@ Open *./annotater/main.html* with a browser. Load images to annotate by pushing 
 
 Points that are obstructed (by hair, clothes, etc.) should not be used for training the classifiers. To avoid this, hold down shift while clicking the points, so that the point turns red. This means that the point will be used only for creating the facial model, not the classifiers.
 
-Note that annotations will be saved in html5 local storage, so you don't need to save the data between sessions. To write out the annotated data, click "save file". The browser will save a file called *annotations.csv* to the default download folder. Note that this file will include all annotations currently in the local storage. 
+Note that annotations will automatically be saved in html5 local storage, so you don't need to save the data between sessions or images. To write out the annotated data, click "save file". The browser will save a file called *annotations.csv* to the default download folder. Note that this file will include all annotations currently in the local storage. 
 
 *annotations.csv* is a semicolon-separated value file of the following format :
 ```
@@ -49,3 +49,8 @@ i000qb-fn.jpg;145;357;false;144;389;false;148;422;false;161;451;....
 The first column is the name of the image file, followed by three fields for each point, where the first field is x-coordinate of the point, second field is the y-coordinate, and the third field is whether or whether not the point can be used in training classifiers.
 
 To train a model from these annotated images, modify the variables *images* and *annotations*  in *./buildlib/config.py* to point to the folder containing your images and the csv file with annotations respectively.
+
+The placement of the points used in the annotations for the models in clmtrackr look roughly like this:
+
+![annotations](https://dl.dropboxusercontent.com/u/10557805/clmtools/annotations2b.jpg)
+
