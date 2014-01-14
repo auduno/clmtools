@@ -1,21 +1,32 @@
+"use strict";
 var faceDeformer = function() {
   
-  var gl, verticeMap, originalPositions;
+  var gl, verticeMap;
   var numTriangles;
   var maxx, minx, maxy, miny;
+  var width, height;
   var first = true;
-  
-  // set vertice coordinates to draw on a_position
-  // set original image vertices on a_texCoord
+  var textureVertices, gridVertices;
+  var texCoordBuffer, gridCoordbuffer;
+  var texCoordLocation;
+  var pdmModel;
+
+  var usegrid = false;
+  var drawProgram, gridProgram;
   
   this.init = function(canvas) {
     // ready a webgl element
     gl = getWebGLContext(canvas); 
   }
 
-  this.load = function(element, sketchCanvasContext, points, triangles) {
-    verticeMap = triangles;
-    numTriangles = triangles.length;
+  this.load = function(element, points, pModel, vertices) {
+    pdmModel = pModel;
+    if (vertices) {
+      verticeMap = vertices;
+    } else {
+      verticeMap = pdmModel.path.vertices;
+    }
+    numTriangles = verticeMap.length;
     
     // get cropping
     maxx = 0;
@@ -28,19 +39,23 @@ var faceDeformer = function() {
       if (points[i][1] > maxy) maxy = points[i][1];
       if (points[i][1] < miny) miny = points[i][1];
     }
-    // get image
+    minx = Math.floor(minx);
+    maxx = Math.ceil(maxx);
+    miny = Math.floor(miny);
+    maxy = Math.ceil(maxy);
+    width = maxx-minx;
+    height = maxy-miny;
+
     if (element.tagName == 'VIDEO' || element.tagName == 'IMG') {
       var ca = document.createElement('canvas');
       ca.width = element.width;
       ca.height = element.height;
       var cc = ca.getContext('2d');
       cc.drawImage(element, 0, 0, element.width, element.height);
-      //sketchCanvasContext.drawImage(element, 0, 0, element.width, element.height);
     } else if (element.tagName == 'CANVAS') {
       var cc = element.getContext('2d');
     }
-    var image = cc.getImageData(minx, miny, maxx-minx+1, maxy-miny+1);
-    //var image = sketchCanvasContext.getImageData(Math.round(minx), Math.round(miny), Math.round(maxx-minx+1), Math.round(maxy-miny+1));
+    var image = cc.getImageData(minx, miny, width, height);
     
     // correct points
     var nupoints = [];
@@ -50,20 +65,45 @@ var faceDeformer = function() {
       nupoints[i][1] = points[i][1] - miny;
     }
     
-    originalPositions = points;
-    
     // create vertices based on points
-    var vertices = [];
+    var textureVertices = [];
     for (var i = 0;i < verticeMap.length;i++) {
-      vertices.push(nupoints[verticeMap[i][0]][0]/(maxx-minx));
-      vertices.push(nupoints[verticeMap[i][0]][1]/(maxy-miny));
-      vertices.push(nupoints[verticeMap[i][1]][0]/(maxx-minx));
-      vertices.push(nupoints[verticeMap[i][1]][1]/(maxy-miny));
-      vertices.push(nupoints[verticeMap[i][2]][0]/(maxx-minx));
-      vertices.push(nupoints[verticeMap[i][2]][1]/(maxy-miny)); 
+      textureVertices.push(nupoints[verticeMap[i][0]][0]/width);
+      textureVertices.push(nupoints[verticeMap[i][0]][1]/height);
+      textureVertices.push(nupoints[verticeMap[i][1]][0]/width);
+      textureVertices.push(nupoints[verticeMap[i][1]][1]/height);
+      textureVertices.push(nupoints[verticeMap[i][2]][0]/width);
+      textureVertices.push(nupoints[verticeMap[i][2]][1]/height); 
     }
     
     if (first) {
+      // create program for drawing grid
+      var gridVertexShaderProg = [
+        "attribute vec2 a_position;",
+        "",
+        "uniform vec2 u_resolution;",
+        "",
+        "void main() {",
+        "  vec2 zeroToOne = a_position / u_resolution;",
+        "  vec2 zeroToTwo = zeroToOne * 2.0;",
+        "  vec2 clipSpace = zeroToTwo - 1.0;",
+        "  gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);",
+        "}"
+      ].join('\n');
+      
+      var gridFragmentShaderProg = [
+        "void main() {",
+        "  gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0);",
+        "}"
+      ].join('\n');
+
+      var gridVertexShader = loadShader(gl, gridVertexShaderProg, gl.VERTEX_SHADER);
+      var gridFragmentShader = loadShader(gl, gridFragmentShaderProg, gl.FRAGMENT_SHADER);
+      gridProgram = createProgram(gl, [gridVertexShader, gridFragmentShader]);
+
+      gridCoordbuffer = gl.createBuffer();
+
+      // create program for drawing deformed face
       var vertexShaderProg = [
         "attribute vec2 a_texCoord;",
         "attribute vec2 a_position;",
@@ -96,26 +136,37 @@ var faceDeformer = function() {
     
       var vertexShader = loadShader(gl, vertexShaderProg, gl.VERTEX_SHADER);
       var fragmentShader = loadShader(gl, fragmentShaderProg, gl.FRAGMENT_SHADER);
-      program = createProgram(gl, [vertexShader, fragmentShader]);
-      gl.useProgram(program);
+      drawProgram = createProgram(gl, [vertexShader, fragmentShader]);
+
+      texCoordBuffer = gl.createBuffer();
+      
       first = false;
     }
+
+    // load program for drawing grid
+    gl.useProgram(gridProgram);
+
+    // set the resolution for grid program
+    var resolutionLocation = gl.getUniformLocation(gridProgram, "u_resolution");
+    gl.uniform2f(resolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+    // load program for drawing deformed face
+    gl.useProgram(drawProgram);
     
     // look up where the vertex data needs to go.
-    var texCoordLocation = gl.getAttribLocation(program, "a_texCoord");
+    texCoordLocation = gl.getAttribLocation(drawProgram, "a_texCoord");
     
-    // provide texture coordinates for the rectangle.
-    var texCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    // provide texture coordinates for face vertices (i.e. where we're going to copy face vertices from).
     gl.enableVertexAttribArray(texCoordLocation);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureVertices), gl.STATIC_DRAW);
+    
     gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
     
-    // Create a texture.
+    // Create the texture.
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    
-    // Set the parameters so we can render any size image.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -124,54 +175,104 @@ var faceDeformer = function() {
     // Upload the image into the texture.
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
     
-    // set the resolution
-    var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-    gl.uniform2f(resolutionLocation, maxx-minx, maxy-miny);
+    // set the resolution for draw program
+    resolutionLocation = gl.getUniformLocation(drawProgram, "u_resolution");
+    gl.uniform2f(resolutionLocation, gl.drawingBufferWidth, gl.drawingBufferHeight);
   }
 
   this.draw = function(points) {
-    // correct points
-    var nupoints = [];
-    for (var i = 0;i < points.length;i++) {
-      nupoints[i] = [];
-      nupoints[i][0] = (points[i][0] - minx)*0.9;
-      nupoints[i][1] = (points[i][1] - miny)*0.9;
+    
+    if (usegrid) {
+      // switch program if needed
+      gl.useProgram(drawProgram);
+
+      //texCoordLocation = gl.getAttribLocation(drawProgram, "a_texCoord");
+
+      gl.enableVertexAttribArray(texCoordLocation);
+      gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+      gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+      
+      usegrid = false;
     }
-  
+
     // create drawvertices based on points
     var vertices = [];
     for (var i = 0;i < verticeMap.length;i++) {
-      vertices.push(nupoints[verticeMap[i][0]][0]);
-      vertices.push(nupoints[verticeMap[i][0]][1]);
-      vertices.push(nupoints[verticeMap[i][1]][0]);
-      vertices.push(nupoints[verticeMap[i][1]][1]);
-      vertices.push(nupoints[verticeMap[i][2]][0]);
-      vertices.push(nupoints[verticeMap[i][2]][1]); 
+      vertices.push(points[verticeMap[i][0]][0]);
+      vertices.push(points[verticeMap[i][0]][1]);
+      vertices.push(points[verticeMap[i][1]][0]);
+      vertices.push(points[verticeMap[i][1]][1]);
+      vertices.push(points[verticeMap[i][2]][0]);
+      vertices.push(points[verticeMap[i][2]][1]); 
     }
     
-    var positionLocation = gl.getAttribLocation(program, "a_position");
+    var positionLocation = gl.getAttribLocation(drawProgram, "a_position");
     
-    // Create a buffer for the position of the rectangle corners.
-    var buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    // Create a buffer for the position of the vertices.
+    var drawPosBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, drawPosBuffer);
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     
-    // Draw the rectangle.
+    // Draw the face vertices
     gl.drawArrays(gl.TRIANGLES, 0, numTriangles*3);
+  }
+
+  this.drawGrid = function(points) {
+    
+    if (!usegrid) {
+      gl.useProgram(gridProgram);
+
+      usegrid = true;
+    }
+
+    // create drawvertices based on points
+    var vertices = [];
+    // create new texturegrid
+    for (var i = 0;i < verticeMap.length;i++) {
+      vertices.push(points[verticeMap[i][0]][0]);
+      vertices.push(points[verticeMap[i][0]][1]);
+      vertices.push(points[verticeMap[i][1]][0]);
+      vertices.push(points[verticeMap[i][1]][1]);
+
+      vertices.push(points[verticeMap[i][1]][0]);
+      vertices.push(points[verticeMap[i][1]][1]);
+      vertices.push(points[verticeMap[i][2]][0]);
+      vertices.push(points[verticeMap[i][2]][1]);
+
+      vertices.push(points[verticeMap[i][2]][0]);
+      vertices.push(points[verticeMap[i][2]][1]);
+      vertices.push(points[verticeMap[i][0]][0]);
+      vertices.push(points[verticeMap[i][0]][1]);
+    }
+
+    var positionLocation = gl.getAttribLocation(gridProgram, "a_position");
+    
+    // Create a buffer for position of the vertices (lines)
+    gl.bindBuffer(gl.ARRAY_BUFFER, gridCoordbuffer);
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    // Draw the lines
+    gl.drawArrays(gl.LINES, 0, numTriangles*6);
+  }
+
+  this.clear = function() {
+    gl.clear(gl.COLOR_BUFFER_BIT);
   }
   
   this.calculatePositions = function(parameters, useTransforms) {
     var x, y, a, b;
     var numParameters = parameters.length;
     var positions = [];
-    for (var i = 0;i < numPatches;i++) {
-      x = pModel.shapeModel.meanShape[i][0];
-      y = pModel.shapeModel.meanShape[i][1];
+    for (var i = 0;i < pdmModel.patchModel.numPatches;i++) {
+      x = pdmModel.shapeModel.meanShape[i][0];
+      y = pdmModel.shapeModel.meanShape[i][1];
       for (var j = 0;j < numParameters-4;j++) {
-        x += pModel.shapeModel.eigenVectors[(i*2)][j]*parameters[j+4];
-        y += pModel.shapeModel.eigenVectors[(i*2)+1][j]*parameters[j+4];
+        x += pdmModel.shapeModel.eigenVectors[(i*2)][j]*parameters[j+4];
+        y += pdmModel.shapeModel.eigenVectors[(i*2)+1][j]*parameters[j+4];
       }
       if (useTransforms) {
         a = parameters[0]*x - parameters[1]*y + parameters[2];
