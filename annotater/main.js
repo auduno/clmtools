@@ -398,6 +398,10 @@ function loadImage() {
 					} else {
 						// estimating parameters
 						positions = estimatePositions();
+						if (!positions) {
+							clear()
+							return false;
+						}
 						// put boundary on estimated points
 						for (var i = 0;i < positions.length;i++) {
 							if (positions[i][0][0] > img.width) {
@@ -418,6 +422,7 @@ function loadImage() {
 						renderPoints(positions, img.width, img.height);
 						storeCurrent();
 					} else {
+						clear();
 						alert("Did not manage to detect position of face in this image. Please select position of face by clicking 'manually select face' and dragging a box around the face.")
 					}
 				}
@@ -447,9 +452,25 @@ function estimatePositions(box) {
 		iteration++;
 		if (box) {
 			curpoints = ctrack.track(document.getElementById('imgcanvas'), box);
+			if (!curpoints) {
+				if (iteration > 0) {
+					curpoints = positions[positions.length-1];
+					converged = true;
+					alert("Having some problems converging on a face in this image. Using the best estimate.");
+					break;
+				} else {
+					alert("Having some problems converging on a face in this image. Please try again.");
+					return false;
+				}
+			}
 		} else {
 			curpoints = ctrack.track(document.getElementById('imgcanvas'));
+			if (!curpoints) {
+				alert("There was a problem converging on a face in this image. Please try again by clicking 'manually select face' and dragging a box around the face.");
+				return false;
+			}
 		}
+
 		if (positions.length == 10) {
 			positions.splice(0,1);
 		}
@@ -572,6 +593,10 @@ function selectBox() {
 			var box = [selection.x1, selection.y1, selection.width, selection.height];
 			// do fitting
 			positions = estimatePositions(box);
+			if (!positions) {
+				clear();
+				return false;
+			}
 			// put boundary on estimated points
 			for (var i = 0;i < positions.length;i++) {
 				if (positions[i][0][0] > img.width) {
