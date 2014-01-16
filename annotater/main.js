@@ -1,14 +1,4 @@
 
-// todo: add zoom level
-// zoom as scaling variable : 
-//   -when saving points, multiply current points by scaling variable before storing
-//   -when loading an image, always reset scaling to 1
-//   -when scaling image:
-//     -seg imagesize
-//     -scale points in d3 model
-//   -override zoom controls (scroll wheel) with our zoom
-//   -stop zoom possibility until first model has been fitted
-
 var scale = 1.0;
 var scaleLock = false;
 function scaleUp() {
@@ -161,6 +151,7 @@ function nextImage() {
 		fileIndex += 1;
 		loadImage();
 	}
+	scale = 1.0;
 }
 
 function prevImage() {
@@ -180,6 +171,7 @@ function prevImage() {
 		fileIndex -= 1;
 		loadImage();
 	}
+	scale = 1.0;
 }
 
 // set up html webstorage for variables
@@ -408,6 +400,7 @@ function loadImage() {
 					canvas.setAttribute('height', img.height);
 					cc.drawImage(img,0,0,img.width, img.height);
 					
+          scale = 1.0;
 					// check if parameters already exist
 					var positions = localStorage.getItem(fileList[fileIndex].name)
 					if (positions) {
@@ -444,7 +437,6 @@ function loadImage() {
 					}
 				}
 				img.src = e.target.result;
-				
 			};
 		})(fileList[fileIndex]);
 		reader.readAsDataURL(fileList[fileIndex]);
@@ -544,15 +536,18 @@ function estimatePositions(box) {
 }
 
 function storeToCSV(filename) {
-	//store current image
-	var coordinates = getParameters();
-	// divide by scale
-	for (var i = 0;i < coordinates.length;i++) {
-		coordinates[i][0][0] /= scale;
-		coordinates[i][0][1] /= scale;
+	
+	if (typeof(fileIndex) !== "undefined") {
+    //store current image
+    var coordinates = getParameters();
+    // divide by scale
+    for (var i = 0;i < coordinates.length;i++) {
+      coordinates[i][0][0] /= scale;
+      coordinates[i][0][1] /= scale;
+    }
+    var stringCoordinates = JSON.stringify(coordinates);
+    localStorage.setItem(fileList[fileIndex].name, stringCoordinates)
 	}
-	var stringCoordinates = JSON.stringify(coordinates);
-	localStorage.setItem(fileList[fileIndex].name, stringCoordinates)
 	
 	var bb = new BlobBuilder;
 	// get all data
