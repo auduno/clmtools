@@ -126,6 +126,12 @@ if (window.File && window.FileReader && window.FileList && window.FileError) {
 			}
 		}
 		
+		if (fileList.length > 1) {
+      document.getElementById('forward').disabled = false;
+    }
+    
+    document.getElementById('coordinates').innerHTML = '';
+		
 		loadImage();
 	}
 	document.getElementById('files').addEventListener('change', handleFileSelect, false);
@@ -152,6 +158,15 @@ function nextImage() {
 		loadImage();
 	}
 	scale = 1.0;
+	
+	if (fileIndex == fileList.length-1) {
+	  document.getElementById('forward').disabled = true;
+	} else {
+	  document.getElementById('forward').disabled = false;
+	}
+	document.getElementById('back').disabled = false;
+	
+	document.getElementById('coordinates').innerHTML = '';
 }
 
 function prevImage() {
@@ -172,6 +187,15 @@ function prevImage() {
 		loadImage();
 	}
 	scale = 1.0;
+  
+	document.getElementById('forward').disabled = false;
+	if (fileIndex == 0) {
+	  document.getElementById('back').disabled = true;
+	} else {
+	  document.getElementById('back').disabled = false;
+	}
+	
+	document.getElementById('coordinates').innerHTML = '';
 }
 
 // set up html webstorage for variables
@@ -245,7 +269,7 @@ function setup(positions, toggle, w, h) {
 			.data(function(d) { return points.slice(0, d) })
 		.enter().append("circle")
 		.attr("class", "control")
-		.attr("r", 4)
+		.attr("r", 3)
 		.attr("cx", x)
 		.attr("cy", y)
 		.attr("fill", function(d) {if (d.visible) {return "#ccc"} else {return "red"}})
@@ -311,7 +335,7 @@ function update() {
 	var circle = interpolation.selectAll("circle")
 		.data(Object);
 	circle.enter().append("circle")
-		.attr("r", 4)
+		.attr("r", 3)
 	circle
 		.attr("cx", x)
 		.attr("cy", y);
