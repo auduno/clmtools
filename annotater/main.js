@@ -25,36 +25,33 @@ function scaleUp() {
 		if (canvas.style.width == "") {
 			var cw = canvas.width;
 			var ch = canvas.height;
-			var scaling = Math.round(cw*(10/9))/cw;
+			var scaling = 10/9;
 			canvas.style.width = cw*scaling+"px";
-			//canvas.style.height = ch*1.1+"px";
+			canvas.style.height = ch*scaling+"px";
 		} else {
 			var cw = canvas.style.width;
 			var ch = canvas.style.height;
-			cw = parseInt(cw.substring(0,cw.length-2));
-			ch = parseInt(ch.substring(0,ch.length-2));
-			var scaling = Math.round(cw*(10/9))/cw;
+			cw = parseFloat(cw.substring(0,cw.length-2));
+			ch = parseFloat(ch.substring(0,ch.length-2));
+			var scaling = 10/9;
 			canvas.style.width = cw*scaling+"px";
 			canvas.style.height = ch*scaling+"px";
 		}
 
 		scale = scale * scaling;
-
+	
 		$("svg").height($("svg").height()*scaling);
-		$("svg").width($("svg").height()*scaling);
-		//canvas.setAttribute('width', cw * 1.1);
-		//canvas.setAttribute('height', ch * 1.1);
-		// change coordinates
-		var c = getRawCoordinates();
-		for (var i = 0; i < c.length; i++) {
-			c[i].x *= scaling;
-			c[i].y *= scaling;
+		$("svg").width($("svg").width()*scaling);
+		
+		// get current points & scale them
+		var params = getParameters();
+		for (var i = 0;i < params.length;i++) {
+		  params[i][0][0] *= scaling;
+		  params[i][0][1] *= scaling;
 		}
-		//vis.selectAll("circle").data(c);
-		vis.selectAll("g").data(c);
-
-		// render graph again
-		update();
+		
+		// render
+		renderPoints(params, cw*scaling, ch*scaling);
 
 		scaleLock = false;
 	}
@@ -74,37 +71,35 @@ function scaleDown() {
 		if (canvas.style.width == "") {
 			var cw = canvas.width;
 			var ch = canvas.height;
-			var scaling = Math.round(cw*0.9)/cw;
+			var scaling = 0.9;
 		} else {
 			var cw = canvas.style.width;
 			var ch = canvas.style.height;
-			cw = parseInt(cw.substring(0,cw.length-2));
-			ch = parseInt(ch.substring(0,ch.length-2));
-			var scaling = Math.round(cw*0.9)/cw;
+			cw = parseFloat(cw.substring(0,cw.length-2));
+			ch = parseFloat(ch.substring(0,ch.length-2));
+			var scaling = 0.9;
 		}
 		if (cw < 50) {
 			scaleLock = false;
 			return;
 		}
-		canvas.style.width = cw*scaling+"px";  
+		canvas.style.width = cw*scaling+"px";
+		canvas.style.height = ch*scaling+"px";
 
 		scale = scale * scaling;
 
 		$("svg").height($("svg").height()*scaling);
-		$("svg").width($("svg").height()*scaling);
-
-		// change coordinates
-		var c = getRawCoordinates();
-		for (var i = 0; i < c.length; i++) {
-			c[i].x *= scaling;
-			c[i].y *= scaling;
+		$("svg").width($("svg").width()*scaling);
+		
+		// get current points & scale them
+		var params = getParameters();
+		for (var i = 0;i < params.length;i++) {
+			params[i][0][0] *= scaling;
+			params[i][0][1] *= scaling;
 		}
-		//vis.selectAll("circle").data(c);
-		vis.selectAll("g").data(c);
-		//vis.selectAll("circle").transition().duration(0).attr("cx", function(d) { return d.x * scale;})
-		//vis.selectAll("circle").transition().duration(0).attr("cy", function(d) { return d.y * scale;})
-		// render graph again
-		update();
+		
+		// render
+		renderPoints(params, cw*scaling, ch*scaling);
 
 		scaleLock = false;
 	}
@@ -153,6 +148,13 @@ function nextImage() {
 	if (fileIndex < fileList.length-1) {
 		// store data in webstorage
 		coordinates = getParameters();
+		
+		// divide by scale
+	for (var i = 0;i < coordinates.length;i++) {
+		coordinates[i][0][0] /= scale;
+		coordinates[i][0][1] /= scale;
+	}
+		
 		var stringCoordinates = JSON.stringify(coordinates);
 		localStorage.setItem(fileList[fileIndex].name, stringCoordinates)
 		
@@ -165,6 +167,13 @@ function prevImage() {
 	if (fileIndex > 0) {
 		// store data in webstorage
 		coordinates = getParameters();
+		
+		// divide by scale
+		for (var i = 0;i < coordinates.length;i++) {
+			coordinates[i][0][0] /= scale;
+			coordinates[i][0][1] /= scale;
+		}
+		
 		var stringCoordinates = JSON.stringify(coordinates);
 		localStorage.setItem(fileList[fileIndex].name, stringCoordinates)
 		
@@ -189,6 +198,11 @@ if (!supports_html5_storage()) {
 
 function storeCurrent() {
 	var coordinates = getParameters();
+	// divide by scale
+	for (var i = 0;i < coordinates.length;i++) {
+		coordinates[i][0][0] /= scale;
+		coordinates[i][0][1] /= scale;
+	}
 	var fileName = fileList[fileIndex].name;
 	var stringCoordinates = JSON.stringify(coordinates);
 	localStorage.setItem(fileName, stringCoordinates);
@@ -239,7 +253,7 @@ function setup(positions, toggle, w, h) {
 			.data(function(d) { return points.slice(0, d) })
 		.enter().append("circle")
 		.attr("class", "control")
-		.attr("r", 2)
+		.attr("r", 4)
 		.attr("cx", x)
 		.attr("cy", y)
 		.attr("fill", function(d) {if (d.visible) {return "#ccc"} else {return "red"}})
@@ -305,7 +319,7 @@ function update() {
 	var circle = interpolation.selectAll("circle")
 		.data(Object);
 	circle.enter().append("circle")
-		.attr("r", 2)
+		.attr("r", 4)
 	circle
 		.attr("cx", x)
 		.attr("cy", y);
@@ -339,12 +353,14 @@ function getParameters() {
 	var coordinates;
 	vis.selectAll("g").each(function(d) {coordinates = d;});
 	coordinates = coordinates.map(function(x) {return [[x.x, x.y],x.visible]});
+	
 	return coordinates;
 };
 
 function getCoordinates() {
 	var coordinates;
 	vis.selectAll("g").each(function(d) {coordinates = d;});
+	
 	var cs = "[";
 	for (var i = 0;i < coordinates.length;i++) {
 		cs += "["+coordinates[i].x+","+coordinates[i].y+"],";
@@ -356,6 +372,7 @@ function getCoordinates() {
 function getRawCoordinates() {
 	var coordinates;
 	vis.selectAll("g").each(function(d) {coordinates = d;});
+	
 	return coordinates;
 }
 
@@ -529,6 +546,11 @@ function estimatePositions(box) {
 function storeToCSV(filename) {
 	//store current image
 	var coordinates = getParameters();
+	// divide by scale
+	for (var i = 0;i < coordinates.length;i++) {
+		coordinates[i][0][0] /= scale;
+		coordinates[i][0][1] /= scale;
+	}
 	var stringCoordinates = JSON.stringify(coordinates);
 	localStorage.setItem(fileList[fileIndex].name, stringCoordinates)
 	
@@ -620,6 +642,11 @@ function selectBox() {
 
 function exportToString() {
 	coordinates = getParameters();
+	// divide by scale
+	for (var i = 0;i < coordinates.length;i++) {
+		coordinates[i][0][0] /= scale;
+		coordinates[i][0][1] /= scale;
+	}
 	var exportCoordinates = [];
 	for (var c = 0;c < coordinates.length;c++) {
 		exportCoordinates.push(coordinates[c][0]);

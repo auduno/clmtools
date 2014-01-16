@@ -58,6 +58,9 @@
   <input type="button" value="clear all data" id="cleardata"/>
   <input type="button" value="manually select face" id="manualselect"/>
   <input type="file" value="load points from csv" id="loadcsv"/>
+  <br/>
+  Zoom:<input type="button" value="+" id="zoomin"/>
+  <input type="button" value="-" id="zoomout"/>
   <script> 
     var paths = [
       [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -107,6 +110,8 @@
     document.getElementById('cleardata').addEventListener("click", function() {localStorage.clear();});
     document.getElementById('manualselect').addEventListener("click", function() {selectBox();});
     document.getElementById('exportCoord').addEventListener("click", function() {var te = exportToString();document.getElementById('coordinates').innerHTML = te;});
+    document.getElementById('zoomin').addEventListener("click", function() {scaleUp();});
+    document.getElementById('zoomout').addEventListener("click", function() {scaleDown();});
   </script>
 </body>
 </html>
