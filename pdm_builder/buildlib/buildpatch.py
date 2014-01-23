@@ -15,6 +15,14 @@ patch_size = config.patch_size
 
 def build_patches(data, c_value=None, gradient=False):
 	filters = []
+	
+	if gradient:
+		patchcrop = [(patch_size+1)/2, (patch_size+3)/2]
+		new_patch_size = patch_size+2
+	else:
+		patchcrop = [(patch_size-1)/2, (patch_size+1)/2]
+		new_patch_size = patch_size
+	
 	for r in range(0, num_patches):
 		print "training patch:"+str(r)
 		positives = []
@@ -32,14 +40,14 @@ def build_patches(data, c_value=None, gradient=False):
 				# TODO : check that there is not missing data:
 				points = numpy.around(values[r]+(numpy.array(im.size)/2))
 				points = points.astype(numpy.uint8)
-				if gradient:
-					# check whether cropping goes outside image
-					m_crop = mask.crop((points[0]-((patch_size+1)/2),points[1]-((patch_size+1)/2),points[0]+((patch_size+3)/2),points[1]+((patch_size+3)/2)))
-					m_crop = numpy.array(m_crop)
-					if not numpy.all(m_crop == 255):
-						print "cropping of patch "+str(r)+" in image '"+filename+"' was outside original image bounds. Dropping this patch from training."
-					else:
-						p_crop = im.crop((points[0]-((patch_size+1)/2), points[1]-((patch_size+1)/2), points[0]+((patch_size+3)/2), points[1]+((patch_size+3)/2) ))
+				# check whether cropping goes outside image
+				m_crop = mask.crop((points[0]-patchcrop[0], points[1]-patchcrop[0], points[0]+patchcrop[1], points[1]+patchcrop[1]))
+				m_crop = numpy.array(m_crop)
+				if not numpy.all(m_crop == 255):
+					print "cropping of patch "+str(r)+" in image '"+filename+"' was outside original image bounds. Dropping this patch from training."
+				else:
+					p_crop = im.crop((points[0]-patchcrop[0], points[1]-patchcrop[0], points[0]+patchcrop[1], points[1]+patchcrop[1] ))
+					if gradient:
 						p_crop = numpy.array(p_crop).astype('int32')
 						dx = sobel(p_crop, axis=0, mode="constant")
 						dy = sobel(p_crop, axis=1, mode="constant")
@@ -48,30 +56,24 @@ def build_patches(data, c_value=None, gradient=False):
 						if not numpy.max(p_crop) == 0.:
 							p_crop *= 255.0 / numpy.max(p_crop)
 						#Image.fromarray(p_crop.astype('uint8')).save("./pcropped/0svm2"+filename+".bmp")
-						positives.append(p_crop.flatten())
-				else: 
-					# check whether cropping goes outside image
-					m_crop = mask.crop((points[0]-((patch_size-1)/2),points[1]-((patch_size-1)/2),points[0]+((patch_size+1)/2),points[1]+((patch_size+1)/2)))
-					m_crop = numpy.array(m_crop)
-					if not numpy.all(m_crop == 255):
-						print "cropping of patch "+str(r)+" in image '"+filename+"' was outside original image bounds. Dropping this patch from training."
-					else:
-						p_crop = im.crop((points[0]-((patch_size-1)/2),points[1]-((patch_size-1)/2),points[0]+((patch_size+1)/2),points[1]+((patch_size+1)/2)))
+					else:	
 						#p_crop.save("./pcropped/svm"+filename)
-						positives.append(numpy.array(p_crop).flatten())
+						p_crop = numpy.array(p_crop)
+					positives.append(p_crop.flatten())
 				
 				# get negative examples from randomization
 				for nr in range(0,10):
-					if gradient:
-						rpoints = random_coord(im.size, patch_size+2, points)
-						# check whether cropping goes outside image
-						m_crop = mask.crop((rpoints[0]-((patch_size+1)/2),rpoints[1]-((patch_size+1)/2),rpoints[0]+((patch_size+3)/2),rpoints[1]+((patch_size+3)/2)))
-						m_crop = numpy.array(m_crop)
-						if not numpy.all(m_crop == 255):
-							pass
-							#print "cropping of a negative for patch "+str(r)+" was outside original image bounds. Dropping this patch from training."
-						else:
-							p_crop = im.crop((rpoints[0]-((patch_size+1)/2),rpoints[1]-((patch_size+1)/2),rpoints[0]+((patch_size+3)/2),rpoints[1]+((patch_size+3)/2)))
+					rpoints = random_coord(im.size, new_patch_size, points)
+					# check whether cropping goes outside image
+					m_crop = mask.crop((rpoints[0]-patchcrop[0],rpoints[1]-patchcrop[0],rpoints[0]+patchcrop[1],rpoints[1]+patchcrop[1]))
+					m_crop = numpy.array(m_crop)
+					if not numpy.all(m_crop == 255):
+						pass
+						#print "cropping of a negative for patch "+str(r)+" was outside original image bounds. Dropping this patch from training."
+					else:
+						p_crop = im.crop((rpoints[0]-patchcrop[0], rpoints[1]-patchcrop[0], rpoints[0]+patchcrop[1], rpoints[1]+patchcrop[1]))
+						if gradient:
+							#
 							p_crop = numpy.array(p_crop).astype('int32')
 							dx = sobel(p_crop, 0)
 							dy = sobel(p_crop, 1)
@@ -80,18 +82,9 @@ def build_patches(data, c_value=None, gradient=False):
 							#p_crop = p_crop.crop((1, 1, patch_size+2, patch_size+1))
 							if not numpy.max(p_crop) == 0.:
 								p_crop *= 255.0 / numpy.max(p_crop)
-							negatives.append(p_crop.flatten())
-					else:
-						rpoints = random_coord(im.size, patch_size, points)
-						# check whether cropping goes outside image
-						m_crop = mask.crop((rpoints[0]-((patch_size-1)/2),rpoints[1]-((patch_size-1)/2),rpoints[0]+((patch_size+1)/2),rpoints[1]+((patch_size+1)/2)))
-						m_crop = numpy.array(m_crop)
-						if not numpy.all(m_crop == 255):
-							pass
-							#print "cropping of a negative for patch "+str(r)+" was outside original image bounds. Dropping this patch from training."
 						else:
-							p_crop = im.crop((rpoints[0]-((patch_size-1)/2),rpoints[1]-((patch_size-1)/2),rpoints[0]+((patch_size+1)/2),rpoints[1]+((patch_size+1)/2)))
-							negatives.append(numpy.array(p_crop).flatten())
+							p_crop = numpy.array(p_crop)
+						negatives.append(p_crop.flatten())
 			
 			if i % 1000 == 0:
 				print i
@@ -102,17 +95,14 @@ def build_patches(data, c_value=None, gradient=False):
 		for filename in negfiles:
 			im = Image.open( join(data_folder, "negatives/", filename) , "r")
 			im = im.convert("L")
-			if gradient:
-				diff = ((patch_size+1)/2)
-			else:
-				diff = ((patch_size-1)/2)
+			diff = patchcrop[0]
 			for nr in range(0,100):
 				
 				x = random.randint(1+diff, im.size[0]-diff)
 				y = random.randint(1+diff, im.size[1]-diff)
 				rpoints = array([x,y])
+				p_crop = im.crop((rpoints[0]-patchcrop[0], rpoints[1]-patchcrop[0],rpoints[0]+patchcrop[1],rpoints[1]+patchcrop[1]
 				if gradient:
-					p_crop = im.crop((rpoints[0]-((patch_size+1)/2),rpoints[1]-((patch_size+1)/2),rpoints[0]+((patch_size+3)/2),rpoints[1]+((patch_size+3)/2)))
 					p_crop = numpy.array(p_crop).astype('int32')
 					dx = sobel(p_crop, 0)
 					dy = sobel(p_crop, 1)
@@ -121,10 +111,9 @@ def build_patches(data, c_value=None, gradient=False):
 					#p_crop = p_crop.crop((1, 1, patch_size+1, patch_size+1))
 					if not numpy.max(p_crop) == 0.:
 						p_crop *= 255.0 / numpy.max(p_crop)
-					negatives.append(p_crop.flatten())
 				else:
-					p_crop = im.crop((rpoints[0]-((patch_size-1)/2),rpoints[1]-((patch_size-1)/2),rpoints[0]+((patch_size+1)/2),rpoints[1]+((patch_size+1)/2)))
-					negatives.append(numpy.array(p_crop).flatten())
+					p_crop = numpy.array(p_crop)
+				negatives.append(p_crop.flatten())
 		
 		# maybe use some other nature photos for negative examples?
 		
