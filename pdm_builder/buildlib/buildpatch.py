@@ -1,22 +1,23 @@
 import numpy, pickle, random, os, config
 
-from sklearn.svm import SVR, SVC
-from sklearn.linear_model import LogisticRegression
-from PIL import Image
 from numpy import array, sqrt, square
 from numpy.linalg import norm
 from os import listdir
 from os.path import isfile, join
+from PIL import Image
 from scipy.ndimage.filters import sobel
+from skimage.feature import local_binary_pattern
+from sklearn.svm import SVR, SVC
+from sklearn.linear_model import LogisticRegression
 
 data_folder = config.data_folder
 num_patches = config.num_patches
 patch_size = config.patch_size
 
-def build_patches(data, c_value=None, gradient=False):
+def build_patches(data, c_value=None, gradient=False, lbp=False):
 	filters = []
 	
-	if gradient:
+	if gradient or lbp:
 		patchcrop = [(patch_size+1)/2, (patch_size+3)/2]
 		new_patch_size = patch_size+2
 	else:
@@ -46,7 +47,7 @@ def build_patches(data, c_value=None, gradient=False):
 				if not numpy.all(m_crop == 255):
 					print "cropping of patch "+str(r)+" in image '"+filename+"' was outside original image bounds. Dropping this patch from training."
 				else:
-					p_crop = im.crop((points[0]-patchcrop[0], points[1]-patchcrop[0], points[0]+patchcrop[1], points[1]+patchcrop[1] ))
+					p_crop = im.crop((points[0]-patchcrop[0], points[1]-patchcrop[0], points[0]+patchcrop[1], points[1]+patchcrop[1]))
 					if gradient:
 						p_crop = numpy.array(p_crop).astype('int32')
 						dx = sobel(p_crop, axis=0, mode="constant")
@@ -56,6 +57,10 @@ def build_patches(data, c_value=None, gradient=False):
 						if not numpy.max(p_crop) == 0.:
 							p_crop *= 255.0 / numpy.max(p_crop)
 						#Image.fromarray(p_crop.astype('uint8')).save("./pcropped/0svm2"+filename+".bmp")
+					elif lbp:
+						p_crop = local_binary_pattern(p_crop, 8, 1)
+						p_crop = p_crop[1:patch_size+1, 1:patch_size+1]
+						Image.fromarray(p_crop.astype('uint8')).save( join(data_folder, "pcropped/", "0svm2"+filename+".bmp") )
 					else:	
 						#p_crop.save("./pcropped/svm"+filename)
 						p_crop = numpy.array(p_crop)
@@ -82,6 +87,9 @@ def build_patches(data, c_value=None, gradient=False):
 							#p_crop = p_crop.crop((1, 1, patch_size+2, patch_size+1))
 							if not numpy.max(p_crop) == 0.:
 								p_crop *= 255.0 / numpy.max(p_crop)
+						elif lbp:
+							p_crop = local_binary_pattern(p_crop, 8, 1)
+							p_crop = p_crop[1:patch_size+1, 1:patch_size+1]
 						else:
 							p_crop = numpy.array(p_crop)
 						negatives.append(p_crop.flatten())
@@ -101,7 +109,7 @@ def build_patches(data, c_value=None, gradient=False):
 				x = random.randint(1+diff, im.size[0]-diff)
 				y = random.randint(1+diff, im.size[1]-diff)
 				rpoints = array([x,y])
-				p_crop = im.crop((rpoints[0]-patchcrop[0], rpoints[1]-patchcrop[0],rpoints[0]+patchcrop[1],rpoints[1]+patchcrop[1]
+				p_crop = im.crop((rpoints[0]-patchcrop[0], rpoints[1]-patchcrop[0],rpoints[0]+patchcrop[1],rpoints[1]+patchcrop[1]))
 				if gradient:
 					p_crop = numpy.array(p_crop).astype('int32')
 					dx = sobel(p_crop, 0)
@@ -111,6 +119,9 @@ def build_patches(data, c_value=None, gradient=False):
 					#p_crop = p_crop.crop((1, 1, patch_size+1, patch_size+1))
 					if not numpy.max(p_crop) == 0.:
 						p_crop *= 255.0 / numpy.max(p_crop)
+				elif lbp:
+					p_crop = local_binary_pattern(p_crop, 8, 1)
+					p_crop = p_crop[1:patch_size+1, 1:patch_size+1]
 				else:
 					p_crop = numpy.array(p_crop)
 				negatives.append(p_crop.flatten())
