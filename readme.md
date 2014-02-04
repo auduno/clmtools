@@ -4,12 +4,11 @@ clmtools
 This is a collection of python tools for building models for [clmtrackr](http://github.com/auduno/clmtrackr/). This includes:
 * Model builder / trainer
 * Annotations for some images in the [MUCT](www.milbo.org/muct/) dataset
+* Annotations for various images found online
 * An annotater for new images
 * Model viewer
 
-Note the annotations included here and the ones used in clmtrackr are slightly modified from the ones included in the MUCT dataset. The difference is mainly in the region around the eyes and nose. 
-
-The intention is to add annotations for more images over time.
+Note the annotations included here and the ones used in clmtrackr are slightly different from the ones included in the MUCT dataset. The difference is mainly in the region around the eyes and nose.
 
 ### Downloading training data
 
@@ -18,6 +17,12 @@ Images from the MUCT database can be downloaded from https://code.google.com/p/m
 python download_muct.py
 ```
 The images will be placed in the folder *./data/images*.
+
+A set of facial images found online can be downloaded by running:
+```
+python download_more.py
+```
+Please note that these images are not public domain, and this set of images should therefore not be shared or reproduced anywhere without prior consent from the copyright owners.
 
 ### Training a model
 
