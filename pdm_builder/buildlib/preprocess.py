@@ -1,4 +1,4 @@
-import numpy, os, config, procrustes
+import numpy, os, config, procrustes, sys
 from numpy import vstack, mean
 from PIL import Image
 
@@ -9,7 +9,7 @@ patch_size = config.patch_size
 input_image_width = config.input_image_width
 data_folder = config.data_folder
 
-def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
+def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 	"""
 	Preprocessing of images and coordinate input:
 	*optional mirroring
@@ -24,6 +24,10 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 	fi = open(coordfiles, "r")
 	for lines in fi:
 		li = lines.strip().split(";")
+		
+		if not os.path.exists(os.path.join(config.images,li[0])):
+			print "Could not find file %s in %s" % (li[0], config.images)
+			continue
 		
 		coor = []
 		not_visible_coor = []
@@ -40,6 +44,9 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		coordinates.append(single_coor)
 		not_visible.append(not_visible_coor)
 	fi.close()
+	
+	if len(coordinates) == 0:
+		sys.exit("No images were found for training. Please make sure that folders in config.py are correct, and that images for training are downloaded.")
 	
 	# mirror the points around vertical axis and use those also
 	if mirror:
@@ -122,77 +129,35 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 		c_final = vstack(c_final)
 		coordinates_final.append(c_final)
 	
-	# find how large to crop images
-	mean_x = mean(meanshape[:,0])
-	mean_y = mean(meanshape[:,1])
-	min_x, max_x, min_y, max_y = float("inf"), -float("inf"), float("inf"), -float("inf")
-	for c in procrustes_transformations:
-		min_x = min(numpy.min(c[:,0]), min_x)
-		max_x = max(numpy.max(c[:,0]), max_x)
-		min_y = min(numpy.min(c[:,1]), min_y)
-		max_y = max(numpy.max(c[:,1]), max_y)
+	if crop:
 	
-	min_half_width = max(mean_x-min_x, max_x-mean_x) + ((patch_size-1)/2) + 2
-	min_half_height = max(mean_y-min_y, max_y-mean_y) + ((patch_size-1)/2) + 2
-	min_half_width = int(min_half_width)
-	min_half_height = int(min_half_height)
-	
-	# get initial rectangle for cropping
-	rect = numpy.array([mean_x-min_half_width, mean_y-min_half_height, \
-		mean_x-min_half_width, mean_y+min_half_height,\
-		mean_x+min_half_width, mean_y+min_half_height,\
-		mean_x+min_half_width, mean_y-min_half_height]).reshape((4,2))
-	
-	# rotate and transform images same way as procrustes
-	cropped_filenames = []
-	fi = open(coordfiles, "r")
-	i = 0
-	for lines in fi:
-		# load image
-		filename = lines.split(";")[0]
-		im = Image.open(config.images+filename, "r")
-		if useNotVisiblePoints:
-			present_coord = [r for r in range(0, num_patches)]
-		else:
-			# check which coordinates are present
-			present_coord = [r for r in range(0, num_patches) if not numpy.isnan(coordinates[i][r,0]) and not numpy.isnan(coordinates[i][r,1])]
-			# check that at least 50% of coordinates are present
-			if len(present_coord) < num_patches/2:
-				continue
-		# only do procrustes analysis on present coordinates
-		reduced_mean = meanshape[present_coord,:]
-		reduced_coord = coordinates[i][present_coord,:]
+		# find how large to crop images
+		mean_x = mean(meanshape[:,0])
+		mean_y = mean(meanshape[:,1])
+		min_x, max_x, min_y, max_y = float("inf"), -float("inf"), float("inf"), -float("inf")
+		for c in procrustes_transformations:
+			min_x = min(numpy.min(c[:,0]), min_x)
+			max_x = max(numpy.max(c[:,0]), max_x)
+			min_y = min(numpy.min(c[:,1]), min_y)
+			max_y = max(numpy.max(c[:,1]), max_y)
 		
-		# get transformations
-		crop_s, crop_r, crop_m1, crop_m2 = procrustes.get_reverse_transforms(reduced_mean, reduced_coord)
-		# transform rect
-		crop_rect = procrustes.transform(rect, crop_s, crop_r, crop_m1, crop_m2)
-
-		# create a mask to detect when we crop outside the original image
-		# create white image of same size as original
-		mask = Image.new(mode='RGB', size=im.size, color=(255,255,255))
-		# transform the same way as image
-		mask = mask.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
-		# convert to boolean
-		mask = mask.convert('L')
-		mask.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_mask.bmp"))
+		min_half_width = max(mean_x-min_x, max_x-mean_x) + ((patch_size-1)/2) + 2
+		min_half_height = max(mean_y-min_y, max_y-mean_y) + ((patch_size-1)/2) + 2
+		min_half_width = int(min_half_width)
+		min_half_height = int(min_half_height)
 		
-		# use pil im.transform to crop and scale faces from images
-		im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
-		# save cropped images to output folder with text 
-		im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+".bmp"))
-		cropped_filenames.append(os.path.splitext(filename)[0]+".bmp")
-		i += 1
-	fi.close()
-	# if mirror is True: we need to mirror image
-	if mirror:
-		fi = open(coordfiles, "r")
-		for lines in fi:
-			#do the same stuff for mirrored images
+		# get initial rectangle for cropping
+		rect = numpy.array([mean_x-min_half_width, mean_y-min_half_height, \
+			mean_x-min_half_width, mean_y+min_half_height,\
+			mean_x+min_half_width, mean_y+min_half_height,\
+			mean_x+min_half_width, mean_y-min_half_height]).reshape((4,2))
+		
+		# rotate and transform images same way as procrustes
+		cropped_filenames = []
+		i = 0
+		for filename in filenames:
 			# load image
-			filename = lines.split(";")[0]
 			im = Image.open(config.images+filename, "r")
-			
 			if useNotVisiblePoints:
 				present_coord = [r for r in range(0, num_patches)]
 			else:
@@ -214,40 +179,94 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True):
 			# create white image of same size as original
 			mask = Image.new(mode='RGB', size=im.size, color=(255,255,255))
 			# transform the same way as image
-			mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
 			mask = mask.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 			# convert to boolean
 			mask = mask.convert('L')
-			mask.save(os.path.join(data_folder, "cropped/" , os.path.splitext(filename)[0]+"_m_mask.bmp"))
-
+			mask.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_mask.bmp"))
+			
 			# use pil im.transform to crop and scale faces from images
-			im = im.transpose(Image.FLIP_LEFT_RIGHT)
 			im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
 			# save cropped images to output folder with text 
-			im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_m.bmp"))
-			cropped_filenames.append(os.path.splitext(filename)[0]+"_m.bmp")
+			im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+".bmp"))
+			cropped_filenames.append(os.path.splitext(filename)[0]+".bmp")
 			i += 1
-		fi.close()
-	
-	# output new coordinates
-	new_coordinates = []
-	for c in coordinates_final:
-		# mark coordinate files where the mark is occluded in some way
-		new_coordinates.append(c - meanshape)
-	
-	#returns a dictionary where key is filename and value is coordinate matrix
-	data_pca = {}
-	for r in range(0, len(new_coordinates)):
-		data_pca[cropped_filenames[r]] = new_coordinates[r]
-			
-	# TODO : create duplicate matrix
-	data_patches = {}
-	for r in range(0, len(new_coordinates)):
-		coord = numpy.copy(new_coordinates[r])
-		if useNotVisiblePoints:
-			# set not visible points to nan
-			for vn in not_visible[r]:
-				coord[vn,:] = numpy.nan
-		data_patches[cropped_filenames[r]] = coord
-	
-	return data_pca, data_patches, meanshape, (min_half_width*2, min_half_height*2)
+		# if mirror is True: we need to mirror image
+		if mirror:
+			for filename in filenames:
+				#do the same stuff for mirrored images
+				# load image
+				im = Image.open(config.images+filename, "r")
+				
+				if useNotVisiblePoints:
+					present_coord = [r for r in range(0, num_patches)]
+				else:
+					# check which coordinates are present
+					present_coord = [r for r in range(0, num_patches) if not numpy.isnan(coordinates[i][r,0]) and not numpy.isnan(coordinates[i][r,1])]
+					# check that at least 50% of coordinates are present
+					if len(present_coord) < num_patches/2:
+						continue
+				# only do procrustes analysis on present coordinates
+				reduced_mean = meanshape[present_coord,:]
+				reduced_coord = coordinates[i][present_coord,:]
+				
+				# get transformations
+				crop_s, crop_r, crop_m1, crop_m2 = procrustes.get_reverse_transforms(reduced_mean, reduced_coord)
+				# transform rect
+				crop_rect = procrustes.transform(rect, crop_s, crop_r, crop_m1, crop_m2)
+
+				# create a mask to detect when we crop outside the original image
+				# create white image of same size as original
+				mask = Image.new(mode='RGB', size=im.size, color=(255,255,255))
+				# transform the same way as image
+				mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+				mask = mask.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
+				# convert to boolean
+				mask = mask.convert('L')
+				mask.save(os.path.join(data_folder, "cropped/" , os.path.splitext(filename)[0]+"_m_mask.bmp"))
+
+				# use pil im.transform to crop and scale faces from images
+				im = im.transpose(Image.FLIP_LEFT_RIGHT)
+				im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
+				# save cropped images to output folder with text 
+				im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_m.bmp"))
+				cropped_filenames.append(os.path.splitext(filename)[0]+"_m.bmp")
+				i += 1
+		
+		# output new coordinates
+		new_coordinates = []
+		for c in coordinates_final:
+			# mark coordinate files where the mark is occluded in some way
+			new_coordinates.append(c - meanshape)
+		
+		#returns a dictionary where key is filename and value is coordinate matrix
+		data_pca = {}
+		for r in range(0, len(new_coordinates)):
+			data_pca[cropped_filenames[r]] = new_coordinates[r]
+				
+		# TODO : create duplicate matrix
+		data_patches = {}
+		for r in range(0, len(new_coordinates)):
+			coord = numpy.copy(new_coordinates[r])
+			if useNotVisiblePoints:
+				# set not visible points to nan
+				for vn in not_visible[r]:
+					coord[vn,:] = numpy.nan
+			data_patches[cropped_filenames[r]] = coord
+		
+		return data_pca, data_patches, meanshape, (min_half_width*2, min_half_height*2)
+	else:
+		# output new coordinates
+		new_coordinates = []
+		for c in coordinates_final:
+			# mark coordinate files where the mark is occluded in some way
+			new_coordinates.append(c - meanshape)
+		
+		#returns a dictionary where key is filename and value is coordinate matrix
+		data_pca = {}
+		for r in range(0, len(filenames)):
+			data_pca[filenames[r]] = new_coordinates[r]
+		if mirror:
+			for r in range(0, len(filenames)):
+				data_pca[filenames[r]+"_m"] = new_coordinates[len(filenames)+r]
+		
+		return data_pca, meanshape

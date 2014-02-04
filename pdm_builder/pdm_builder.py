@@ -1,4 +1,4 @@
-import pickle, numpy, json, os
+import pickle, numpy, json, os, string
 from buildlib import preprocess, buildshape, config
 #from buildlib.buildpatch_mosse import build_patches
 from buildlib.buildpatch import build_patches
@@ -10,8 +10,8 @@ cleanUp = True
 
 # create some needed folders
 for folder in ["cropped", "pcropped", "svmImages"]:
-  if not os.path.exists(os.path.join(config.data_folder, folder)):
-    os.makedirs(os.path.join(config.data_folder, folder))
+	if not os.path.exists(os.path.join(config.data_folder, folder)):
+		os.makedirs(os.path.join(config.data_folder, folder))
 
 # preprocess data
 data_pca, data_patches, meanshape, cropsize = preprocess.preprocess(config.annotations, mirror = True)
@@ -46,9 +46,12 @@ for k,v in data_patches.iteritems():
 # in our case: 170 x 178, i.e. add 85 to x-vals, and 89 to y-vals
 meanshape = ((meanshape-mean)+[cropsize[0]/2,cropsize[1]/2])
 
+
 if buildPatches:
+	# weights for eyes and mouth
+	from buildlib.me_weights import weights
 	# build patch model
-	patchModel = build_patches(data_patches, 0.00000001, False)
+	patchModel = build_patches(data_patches, gradient=True, lbp=True, weights=weights, optimize_params=True)
 
 # store the model
 model = {}
@@ -77,7 +80,7 @@ of.write(";\n")
 of.close()
 
 if cleanUp:
-  import shutil
-  for folder in ["cropped", "pcropped", "svmImages"]:
-    if os.path.exists(os.path.join(config.data_folder, folder)):
-      shutil.rmtree(os.path.join(config.data_folder, folder))
+	import shutil
+	for folder in ["cropped", "pcropped", "svmImages"]:
+		if os.path.exists(os.path.join(config.data_folder, folder)):
+			shutil.rmtree(os.path.join(config.data_folder, folder))
