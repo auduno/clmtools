@@ -102,7 +102,7 @@ var coordinates = [];
 
 // set up file selector and variables to hold selections
 var fileList, fileIndex;
-if (window.File && window.FileReader && window.FileList && window.FileError) {
+if (window.File && window.FileReader && window.FileList) {
 	function handleFileSelect(evt) {
 		var files = evt.target.files;
 		fileList = [];
@@ -319,8 +319,8 @@ function setup(positions, toggle, w, h) {
 		.data(function(d) { return points.slice(0, d); })
 	.enter().append("text")
 		.attr("class", "controltext")
-		.attr("dx", "10px")
-		.attr("dy", ".4em")
+		.attr("dx", x)
+		.attr("dy", y)
 		.text(function(d, i) { return "P" + i });
 
 };
