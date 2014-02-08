@@ -52,6 +52,7 @@ if buildPatches:
 	from buildlib.me_weights import weights
 	# build patch model
 	patchModel = build_patches(data_patches, gradient=True, lbp=True, weights=weights, optimize_params=True)
+	#patchModel = build_patches(data_patches)
 
 # store the model
 model = {}

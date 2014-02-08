@@ -3,11 +3,13 @@ from PIL import Image
 from numpy import array, sqrt, square, fft, mean, zeros
 from numpy.linalg import norm
 from numpy.ma import conjugate
+from os.path import isfile, join
 
+data_folder = config.data_folder
 num_patches = config.num_patches
 patch_size = config.patch_size
 
-def build_patches(data, c, bool):
+def build_patches(data):
 	filters = []
 	for r in range(0, num_patches):
 		print "training patch:"+str(r)
@@ -17,7 +19,7 @@ def build_patches(data, c, bool):
 		# load positive examples
 		i = 0
 		for filename, values in data.iteritems():
-			im = Image.open("./cropped/"+filename, "r")
+			im = Image.open( join(data_folder, "cropped/", filename), "r")
 			
 			# convert image to grayscale
 			im = im.convert("L")
@@ -39,7 +41,7 @@ def build_patches(data, c, bool):
 				nuy = points[1]-top
 				
 				p_crop = im.crop((left,top,left+patch_size,top+patch_size))
-				Image.fromarray(numpy.asarray(p_crop).astype('int')).convert("L").save("./pcropped/mosse"+filename+".bmp")
+				Image.fromarray(numpy.asarray(p_crop).astype('int')).convert("L").save( join(data_folder, "pcropped/", "mosse"+filename+".bmp") )
 				images.append(numpy.array(p_crop))
 				
 				# create target images
@@ -89,7 +91,7 @@ def build_patches(data, c, bool):
 		maxf = numpy.max(fil)
 		fil *= (255/maxf)
 		fil = numpy.floor(fil)
-		Image.fromarray(fil.astype('int')).convert("L").save("./svmImages/svm"+str(r)+".bmp")
+		Image.fromarray(fil.astype('int')).convert("L").save( join(data_folder, "svmImages/", "svm"+str(r)+".bmp") )
 		#
 		
 		#fi = open("./svmFilters/filter"+str(r)+".pickle", "w")
