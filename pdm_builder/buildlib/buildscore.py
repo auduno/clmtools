@@ -1,6 +1,7 @@
 import numpy, random, os, config
 
 from sklearn.svm import SVR
+from sklearn import preprocessing
 from os import listdir
 from os.path import isfile, join
 from PIL import Image
@@ -23,7 +24,9 @@ def getScoring(data, mean):
 	maxs = numpy.amax(mean, axis=0)
 	mean_width = int(round(maxs[0]-mins[0]))
 	mean_height = int(round(maxs[1]-mins[1]))
-
+	mins = mins+numpy.array([float(mean_width/4.5) , -float(mean_height)/12])
+	maxs = maxs+numpy.array([-float(mean_width/4.5) , -float(mean_height)/6])
+	
 	# load positive examples
 	i = 0
 	print "getting positive examples from face images"
@@ -41,12 +44,12 @@ def getScoring(data, mean):
 		# reduce resolution 
 		p_crop = p_crop.resize((scoringmodelWidth,scoringmodelHeight),Image.BILINEAR)
 
-		p_crop_img = Image.fromarray(((normalize(numpy.array(p_crop))*255.).astype("uint8")))
-		p_crop_img.save(join(data_folder, "pcropped/", filename+"_mask.bmp"))
-		
 		# do log of images
-		#p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1.0)
-		p_crop = numpy.array(p_crop)
+		p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1.0)
+		#p_crop = numpy.array(p_crop)
+		
+		p_crop_img = Image.fromarray((normalize(p_crop)*255.).astype("uint8"))
+		p_crop_img.save(join(data_folder, "pcropped/", filename+"_mask.bmp"))
 
 		positives.append(p_crop.flatten())
 						
@@ -72,14 +75,17 @@ def getScoring(data, mean):
 				# reduce resolution 
 				p_crop = p_crop.resize((scoringmodelWidth,scoringmodelHeight),Image.BILINEAR)
 				# do log of images
-				#p_crop2 = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1)
-				p_crop2 = numpy.array(p_crop)
+				p_crop2 = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1)
+				#p_crop2 = numpy.array(p_crop)
+				
+				p_crop_img = Image.fromarray((normalize(p_crop2)*255.).astype("uint8"))
+				p_crop_img.save(join(data_folder, "pcropped/", "neg_"+filename+"_mask.bmp"))
 
 				negatives.append(p_crop2.flatten())
 
 	print "getting negative examples from landscape images"
 	# get negative examples from landscape images
-	negfiles = [f for f in listdir( join(data_folder, "negatives/")  ) if isfile( join(data_folder, "negatives/",f) )]
+	negfiles = [f for f in listdir( join(data_folder, "negatives/")	 ) if isfile( join(data_folder, "negatives/",f) )]
 	for filename in negfiles:
 		im = Image.open( join(data_folder, "negatives/", filename) , "r")
 		im = im.convert("L")
@@ -91,14 +97,23 @@ def getScoring(data, mean):
 			# reduce resolution 
 			p_crop = p_crop.resize((scoringmodelWidth,scoringmodelHeight),Image.BILINEAR)
 			# do log of images
-			#p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1)
-			p_crop = numpy.array(p_crop)
+			p_crop = numpy.log(numpy.array(p_crop, dtype=numpy.uint16)+1)
+			#p_crop = numpy.array(p_crop)
+			
+			p_crop_img = Image.fromarray((normalize(p_crop)*255.).astype("uint8"))
+			p_crop_img.save(join(data_folder, "pcropped/", "neg_"+filename+"_mask.bmp"))
+				
 			negatives.append(p_crop.flatten())
 
 	# normalize image data to 0,1 interval
 	
-	positives = [normalize(p) for p in positives]
-	negatives = [normalize(n) for n in negatives]
+	#positives = [normalize(p) for p in positives]
+	#negatives = [normalize(n) for n in negatives]
+	
+	positives = [preprocessing.scale(p) for p in positives]
+	negatives = [preprocessing.scale(n) for n in negatives]
+	
+	
 	# TODO : this should be set automatically?
 
 	#testpos = positives[750:]
@@ -113,7 +128,7 @@ def getScoring(data, mean):
 	negatives = negatives[0:800]
 
 	labels = [1.0 for p in positives]
-	labels.extend([0.0 for n in negatives])
+	labels.extend([-1.0 for n in negatives])
 	labels = numpy.array(labels)
 	features = [p.flatten() for p in positives]
 	features.extend([n.flatten() for n in negatives])
@@ -127,10 +142,19 @@ def getScoring(data, mean):
 			weights.append(1.)
 		else:
 			weights.append(float(len(positives))/float(len(negatives))*0.5)
-
+	
+	#arr = numpy.arange(features.shape[0])
+	#numpy.random.shuffle(arr)
+	#from sklearn.grid_search import GridSearchCV
+	#from sklearn.metrics import mean_squared_error
+	#clfg = GridSearchCV(SVR(kernel="linear"), {'C':[0.001, 0.0005, 0.0001], 'epsilon' : [0.1, 0.05]}, loss_func=mean_squared_error, verbose=100)
+	#clfg.fit(features[arr,:], labels[arr])
+	#print "lbp best params"+str(clfg.best_params_)
+	#clf = clfg.best_estimator_
+	
 	print "starting SVM"
 	# do svm
-	clf = SVR(C=0.01, epsilon = 0.01, kernel="linear")
+	clf = SVR(C=0.0005, epsilon = 0.1, kernel="linear")
 	clf.fit(features, labels)
 	
 	# optionally store filters as normalized images, for validation
