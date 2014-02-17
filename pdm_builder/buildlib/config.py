@@ -139,16 +139,14 @@ num_patches = 71
 # wanted width of pdm
 # a width of 100 will give ocular distance of approximately ?
 #modelwidth = 400
-modelwidth = 65
-#modelwidth = 40
+modelwidth = 65 # default for creating pdm
+#modelwidth = 40 # default for creating detection filters
 
 # wanted patchsize, must be odd
-patch_size = 11
-#patch_size = 16
+patch_size = 11 # default for creating SVM filters
+#patch_size = 16 # default for creating MOSSE filters
 
 # raw image folder
 data_folder = "./data/"
 images = "./data/images/"
 annotations = "./data/annotations.csv"
-
-input_image_width = 480

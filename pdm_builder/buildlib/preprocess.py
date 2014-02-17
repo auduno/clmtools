@@ -6,7 +6,6 @@ mirror_map = config.mirror_map
 num_patches = config.num_patches
 modelwidth = config.modelwidth
 patch_size = config.patch_size
-input_image_width = config.input_image_width
 data_folder = config.data_folder
 
 def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
