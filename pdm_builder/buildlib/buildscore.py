@@ -1,6 +1,6 @@
-import numpy, random, os, config
+import numpy, random, os, config, re
 
-from sklearn.svm import SVR
+from sklearn.svm import SVC
 from sklearn import preprocessing
 from os import listdir
 from os.path import isfile, join
@@ -8,13 +8,14 @@ from PIL import Image
 
 data_folder = config.data_folder
 
-def getScoring(data, mean):
+def getScoring(data, mean, weights=False):
 	"""
 	Create a logistic regression filter for scoring how close the tracking is to the face
 	"""
 
 	positives = []
 	negatives = []
+	weighting = []
 	
 	scoringmodelWidth = 20
 	scoringmodelHeight = 22
@@ -32,6 +33,12 @@ def getScoring(data, mean):
 	print "getting positive examples from face images"
 	for filename, values in data.iteritems():
 		im = Image.open(join(data_folder, "cropped/", filename), "r")
+		
+		if weights:
+			if re.match(r"i\d\d\d.*", filename):
+				weighting.append(True)
+			else:
+				weighting.append(False)
 		
 		# convert image to grayscale
 		im = im.convert("L")
@@ -105,28 +112,30 @@ def getScoring(data, mean):
 				
 			negatives.append(p_crop.flatten())
 
-	# normalize image data to 0,1 interval
-	
-	#positives = [normalize(p) for p in positives]
-	#negatives = [normalize(n) for n in negatives]
-	
+	# normalize image data
 	positives = [preprocessing.scale(p) for p in positives]
 	negatives = [preprocessing.scale(n) for n in negatives]
 	
+	if weights:
+		# weighting
+		num_positives = float(len(positives))
+		num_weighted = float(sum(weighting))
+		sample_weight = []
+		if num_weighted > 0:
+			for p in range(len(positives)):
+				if weighting[p]:
+					sample_weight.append(num_positives/(2*num_weighted))
+				else:
+					sample_weight.append(num_positives/(2*(num_positives-num_weighted)))
+			for n in range(len(negatives)):
+				sample_weight.append(1.)
+		else:
+			sample_weight = [1.0]*(len(positives)+len(negatives))
+	else:
+		#sample_weight = [1.0]*(len(positives)+len(negatives))
+		sample_weight = [1.0]*(len(positives))
+		sample_weight.extend([len(positives)/(2*float(len(negatives)))]*len(negatives))
 	
-	# TODO : this should be set automatically?
-
-	#testpos = positives[750:]
-	#testlabels = [1.0 for p in testpos]
-	#testlabels.extend([0.0 for n in negatives[700:800]])
-	#testlabels = numpy.array(testlabels)
-	#testfeatures = [p.flatten() for p in testpos]
-	#testfeatures.extend([n.flatten() for n in negatives[700:800]])
-	#testfeatures = numpy.vstack(testfeatures)
-
-	#positives = positives[0:750]
-	negatives = negatives[0:800]
-
 	labels = [1.0 for p in positives]
 	labels.extend([-1.0 for n in negatives])
 	labels = numpy.array(labels)
@@ -134,43 +143,28 @@ def getScoring(data, mean):
 	features.extend([n.flatten() for n in negatives])
 	features = numpy.vstack(features)
 	
-	# TODO : this isn't used
-	# since we have more negative samples than positive samples, we need to balance the set
-	weights = []
-	for l in labels:
-		if l == 1:
-			weights.append(1.)
-		else:
-			weights.append(float(len(positives))/float(len(negatives))*0.5)
-	
 	#arr = numpy.arange(features.shape[0])
 	#numpy.random.shuffle(arr)
 	#from sklearn.grid_search import GridSearchCV
 	#from sklearn.metrics import mean_squared_error
-	#clfg = GridSearchCV(SVR(kernel="linear"), {'C':[0.001, 0.0005, 0.0001], 'epsilon' : [0.1, 0.05]}, loss_func=mean_squared_error, verbose=100)
+	#clfg = GridSearchCV(SVC(kernel="linear"), {'C':[0.005, 0.001, 0.0005]}, loss_func=mean_squared_error, verbose=100)
+	#clfg.fit(features[arr,:], labels[arr], sample_weight=numpy.array(sample_weight)[arr])
 	#clfg.fit(features[arr,:], labels[arr])
-	#print "lbp best params"+str(clfg.best_params_)
+	#print "best params"+str(clfg.best_params_)
 	#clf = clfg.best_estimator_
+	#print "starting SVM"
 	
-	print "starting SVM"
 	# do svm
-	clf = SVR(C=0.0005, epsilon = 0.1, kernel="linear")
-	clf.fit(features, labels)
+	clf = SVC(C=0.0005, kernel="linear")
+	clf.fit(features, labels, sample_weight=sample_weight)
+	#clf.fit(features, labels)
 	
 	# optionally store filters as normalized images, for validation
 	#coefficients = clf.coef_
-	#coefficients = ((normalize(-(coefficients+clf.intercept_)))*255.).astype("uint8")
+	#coefficients = ((normalize((coefficients+clf.intercept_)))*255.).astype("uint8")
 	#coefficients = coefficients.reshape((scoringmodelHeight,scoringmodelWidth))
 	#coefImg = Image.fromarray(coefficients)
 	#coefImg.save( join(data_folder, "svmImages/", "svmScoring.bmp") )
-
-	#errors = []
-	#import math
-	#for f in range(0,len(testfeatures)):
-		#score = numpy.sum(features[f]*clf.coef_) + clf.intercept_
-	#	score = clf.predict(testfeatures[f])
-	#	errors.append(math.sqrt((testlabels[f]-score)**2))
-	#print "mse:"+str(numpy.mean(errors))
 
 	scoringModel = {}
 	scoringModel['bias'] = clf.intercept_.tolist()[0]
