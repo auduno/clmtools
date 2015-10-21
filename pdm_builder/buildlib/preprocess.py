@@ -15,7 +15,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 	*procrustes analysis
 	*cropping and aligning of images
 	"""
-	
+
 	# read in coordinates
 	coordinates = []
 	filenames = []
@@ -23,7 +23,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 	fi = open(coordfiles, "r")
 	for lines in fi:
 		li = lines.strip().split(";")
-		
+
 		if not os.path.exists(os.path.join(config.images,li[0])):
 			print "Could not find file %s in %s" % (li[0], config.images)
 			continue
@@ -43,10 +43,10 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 		coordinates.append(single_coor)
 		not_visible.append(not_visible_coor)
 	fi.close()
-	
+
 	if len(coordinates) == 0:
 		sys.exit("No images were found for training. Please make sure that folders in config.py are correct, and that images for training are downloaded.")
-	
+
 	# mirror the points around vertical axis and use those also
 	if mirror:
 		# create mirror coordinates according to some map in config
@@ -64,13 +64,13 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 			not_visible_coor = [mirror_map[v] for v in not_visible[c]]
 			not_visible.append(not_visible_coor)
 		coordinates.extend(mirrors)
-	
+
 	# procrustes analysis of coordinates
 	procrustes_distance = 1000.0
 	# TODO: check that the first coordinate has all coordinates
-	
+
 	# TODO : we should rotate the meanshape (either at the beginning or the end) so that it's symmetrical
-	
+
 	meanshape = coordinates[0]
 	while procrustes_distance > 20.0:
 		aligned_coordinates = [[] for i in range(num_patches)]
@@ -101,10 +101,10 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 		# set old mean shape to new mean shape
 		meanshape = new_meanshape
 		print "procrustes distance in current iteration: "+str(procrustes_distance)
-	
+
 	# scale mean model to given modelwidth
 	meanshape = procrustes.scale_width(meanshape, modelwidth)
-	
+
 	procrustes_transformations = []
 	coordinates_final = []
 	for c in range(0,len(coordinates)):
@@ -127,9 +127,9 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 			c_final[present_coord[r],:] = c_transform[r,:]
 		c_final = vstack(c_final)
 		coordinates_final.append(c_final)
-	
+
 	if crop:
-	
+
 		# find how large to crop images
 		mean_x = mean(meanshape[:,0])
 		mean_y = mean(meanshape[:,1])
@@ -139,18 +139,18 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 			max_x = max(numpy.max(c[:,0]), max_x)
 			min_y = min(numpy.min(c[:,1]), min_y)
 			max_y = max(numpy.max(c[:,1]), max_y)
-		
+
 		min_half_width = max(mean_x-min_x, max_x-mean_x) + ((patch_size-1)/2) + 2
 		min_half_height = max(mean_y-min_y, max_y-mean_y) + ((patch_size-1)/2) + 2
 		min_half_width = int(min_half_width)
 		min_half_height = int(min_half_height)
-		
+
 		# get initial rectangle for cropping
 		rect = numpy.array([mean_x-min_half_width, mean_y-min_half_height, \
 			mean_x-min_half_width, mean_y+min_half_height,\
 			mean_x+min_half_width, mean_y+min_half_height,\
 			mean_x+min_half_width, mean_y-min_half_height]).reshape((4,2))
-		
+
 		# rotate and transform images same way as procrustes
 		cropped_filenames = []
 		i = 0
@@ -168,7 +168,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 			# only do procrustes analysis on present coordinates
 			reduced_mean = meanshape[present_coord,:]
 			reduced_coord = coordinates[i][present_coord,:]
-			
+
 			# get transformations
 			crop_s, crop_r, crop_m1, crop_m2 = procrustes.get_reverse_transforms(reduced_mean, reduced_coord)
 			# transform rect
@@ -182,10 +182,10 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 			# convert to boolean
 			mask = mask.convert('L')
 			mask.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_mask.bmp"))
-			
+
 			# use pil im.transform to crop and scale faces from images
 			im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
-			# save cropped images to output folder with text 
+			# save cropped images to output folder with text
 			im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+".bmp"))
 			cropped_filenames.append(os.path.splitext(filename)[0]+".bmp")
 			i += 1
@@ -207,7 +207,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 				# only do procrustes analysis on present coordinates
 				reduced_mean = meanshape[present_coord,:]
 				reduced_coord = coordinates[i][present_coord,:]
-				
+
 				# get transformations
 				crop_s, crop_r, crop_m1, crop_m2 = procrustes.get_reverse_transforms(reduced_mean, reduced_coord)
 				# transform rect
@@ -226,22 +226,22 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 				# use pil im.transform to crop and scale faces from images
 				im = im.transpose(Image.FLIP_LEFT_RIGHT)
 				im = im.transform((min_half_width*2, min_half_height*2), Image.QUAD, crop_rect.flatten(), Image.BILINEAR)
-				# save cropped images to output folder with text 
+				# save cropped images to output folder with text
 				im.save(os.path.join(data_folder, "cropped/", os.path.splitext(filename)[0]+"_m.bmp"))
 				cropped_filenames.append(os.path.splitext(filename)[0]+"_m.bmp")
 				i += 1
-		
+
 		# output new coordinates
 		new_coordinates = []
 		for c in coordinates_final:
 			# mark coordinate files where the mark is occluded in some way
 			new_coordinates.append(c - meanshape)
-		
+
 		#returns a dictionary where key is filename and value is coordinate matrix
 		data_pca = {}
 		for r in range(0, len(new_coordinates)):
 			data_pca[cropped_filenames[r]] = new_coordinates[r]
-				
+
 		# TODO : create duplicate matrix
 		data_patches = {}
 		for r in range(0, len(new_coordinates)):
@@ -251,7 +251,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 				for vn in not_visible[r]:
 					coord[vn,:] = numpy.nan
 			data_patches[cropped_filenames[r]] = coord
-		
+
 		return data_pca, data_patches, meanshape, (min_half_width*2, min_half_height*2)
 	else:
 		# output new coordinates
@@ -259,7 +259,7 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 		for c in coordinates_final:
 			# mark coordinate files where the mark is occluded in some way
 			new_coordinates.append(c - meanshape)
-		
+
 		#returns a dictionary where key is filename and value is coordinate matrix
 		data_pca = {}
 		for r in range(0, len(filenames)):
@@ -267,5 +267,5 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 		if mirror:
 			for r in range(0, len(filenames)):
 				data_pca[filenames[r]+"_m"] = new_coordinates[len(filenames)+r]
-		
+
 		return data_pca, meanshape

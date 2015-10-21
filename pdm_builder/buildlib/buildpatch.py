@@ -20,14 +20,14 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 	raw_bias = []
 	grad_bias = []
 	lbp_bias = []
-	
+
 	#if gradient or lbp:
 	grad_patchcrop = [(patch_size+1)/2, (patch_size+3)/2]
 	patchcrop = [(patch_size-1)/2, (patch_size+1)/2]
-	
+
 	for r in range(0, num_patches):
 		print "training patch:"+str(r)
-		
+
 		positives = []
 		negatives = []
 		grad_positives = []
@@ -35,13 +35,13 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 		lbp_positives = []
 		lbp_negatives = []
 		weighting = []
-		
+
 		# load positive examples
 		i = 0
 		for filename, values in data.iteritems():
 			im = Image.open( join(data_folder, "cropped/", filename) , "r")
 			mask = Image.open( join(data_folder, "cropped/", filename[:-4]+"_mask.bmp") , "r")
-			
+
 			# convert image to grayscale
 			im = im.convert("L")
 			if not numpy.isnan(values[r][0]):
@@ -80,18 +80,18 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 					else:
 						if gradient:
 							grad_crop = getGradientCrop(im, rpoints)
-							#Image.fromarray(grad_crop.astype('uint8')).save( join(data_folder, "pcropped/", "grad_neg_"+filename) )	
+							#Image.fromarray(grad_crop.astype('uint8')).save( join(data_folder, "pcropped/", "grad_neg_"+filename) )
 							grad_negatives.append(grad_crop.flatten())
 						if lbp:
 							lbp_crop = getLBPCrop(im, rpoints)
 							lbp_negatives.append(lbp_crop.flatten())
 						raw_crop = getRawCrop(im, rpoints)
 						negatives.append(raw_crop.flatten())
-			
+
 			if i % 1000 == 0:
 				print i
 			i += 1
-		
+
 		# get negative examples from landscape images
 		negfiles = [f for f in listdir( join(data_folder, "negatives/")	 ) if isfile( join(data_folder, "negatives/",f) )]
 		for filename in negfiles:
@@ -104,18 +104,18 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 				rpoints = array([x,y])
 				if gradient:
 					grad_crop = getGradientCrop(im, rpoints)
-					#Image.fromarray(grad_crop.astype('uint8')).save( join(data_folder, "pcropped/", "grad_neg_"+filename) )	
+					#Image.fromarray(grad_crop.astype('uint8')).save( join(data_folder, "pcropped/", "grad_neg_"+filename) )
 					grad_negatives.append(grad_crop.flatten())
 				if lbp:
 					lbp_crop = getLBPCrop(im, rpoints)
 					lbp_negatives.append(lbp_crop.flatten())
 				raw_crop = getRawCrop(im, rpoints)
 				negatives.append(raw_crop.flatten())
-		
+
 		# maybe use some other nature photos for negative examples?
-		
+
 		# maybe use uniform images for negative examples?
-		
+
 		# normalize image data to 0,1 interval
 		positives = [normalize(p) for p in positives]
 		negatives = [normalize(n) for n in negatives]
@@ -125,7 +125,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 		if lbp:
 			lbp_positives = [normalize(p) for p in lbp_positives]
 			lbp_negatives = [normalize(n) for n in lbp_negatives]
-		
+
 		labels = [1.0 for p in positives]
 		labels.extend([-1.0 for n in negatives])
 		labels = numpy.array(labels)
@@ -140,7 +140,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 			lbp_features = [p.flatten() for p in lbp_positives]
 			lbp_features.extend([n.flatten() for n in lbp_negatives])
 			lbp_features = numpy.vstack(lbp_features)
-		
+
 		if weights:
 			# weighting
 			num_positives = float(len(positives))
@@ -158,7 +158,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 				sample_weight = [1.0]*(len(positives)+len(negatives))
 		else:
 			sample_weight = [1.0]*(len(positives)+len(negatives))
-		
+
 		if optimize_params:
 			# use grid search/cross-validation to set C, epsilon parameter on each patch?
 			arr = numpy.arange(features.shape[0])
@@ -174,10 +174,10 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 		#clf = LogisticRegression(penalty='L2', dual=False, C=0.00001)
 
 		clf.fit(features, labels, sample_weight=sample_weight)
-		
+
 		# store filters as normalized images, for validation
 		#saveAsImage(clf.coef_, join(data_folder, "svmImages/", "raw"+str(r)+".bmp"))
-		
+
 		filters.append(clf.coef_.flatten().tolist())
 		raw_bias.append(clf.intercept_[0])
 
@@ -192,7 +192,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 			clf.fit(grad_features, labels, sample_weight=sample_weight)
 			grad_filters.append(clf.coef_.flatten().tolist())
 			grad_bias.append(clf.intercept_[0])
-			
+
 			#saveAsImage(clf.coef_, join(data_folder, "svmImages/", "grad"+str(r)+".bmp"))
 		if lbp:
 			if optimize_params:
@@ -205,9 +205,9 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 			clf.fit(lbp_features, labels, sample_weight=sample_weight)
 			lbp_filters.append(clf.coef_.flatten().tolist())
 			lbp_bias.append(clf.intercept_[0])
-			
+
 			#saveAsImage(clf.coef_, join(data_folder, "svmImages/", "lbp"+str(r)+".bmp"))
-	
+
 	# output for standard model:
 	filteroutput = {
 		'raw' : [[-filters[f][r] for r in range(0, patch_size*patch_size)] for f in range(0, num_patches)],
@@ -221,7 +221,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 	if lbp:
 		filteroutput['lbp'] = [[-lbp_filters[f][r] for r in range(0, patch_size*patch_size)] for f in range(0, num_patches)]
 		biasoutput['lbp'] = lbp_bias
-	
+
 	# output result as dictionary with entries
 	patchModel = {}
 	patchModel['patchSize'] = [patch_size, patch_size]
@@ -229,7 +229,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 	patchModel['bias'] = biasoutput
 	patchModel['numPatches'] = num_patches
 	patchModel['patchType'] = 'SVM'
-	
+
 	return patchModel
 
 def getGradientCrop(image, point):
@@ -277,7 +277,7 @@ def local_binary_pattern(img):
 				max(numpy.sign(bottomLeft-midMid),0)*32 + max(numpy.sign(bottomMid-midMid),0)*64 + max(numpy.sign(bottomRight-midMid),0)*128
 			npi_crop[i,j] = entry
 	npi_crop = npi_crop[1:patch_size+1, 1:patch_size+1]
-	
+
 	return npi_crop
 
 def random_coord(size, patchsize, pos_coord):

@@ -15,35 +15,35 @@ def build_patches(data):
 		print "training patch:"+str(r)
 		images = []
 		targetImages = []
-		
+
 		# load positive examples
 		i = 0
 		for filename, values in data.iteritems():
 			im = Image.open( join(data_folder, "cropped/", filename), "r")
-			
+
 			# convert image to grayscale
 			im = im.convert("L")
-			
+
 			#generate random offset to target to generate better filters
 			xof = random.randint(-3,3)
 			yof = random.randint(-3,3)
-			
+
 			if not numpy.isnan(values[r][0]):
 				# TODO : check that there is not missing data:
-		
+
 				points = values[r]+(numpy.array(im.size)/2)
 				points = numpy.around(points)
 				points = points.astype(numpy.uint8)
-				
+
 				left = points[0]-(patch_size/2)-xof
 				top = points[1]-(patch_size/2)-yof
 				nux = points[0]-left
 				nuy = points[1]-top
-				
+
 				p_crop = im.crop((left,top,left+patch_size,top+patch_size))
 				Image.fromarray(numpy.asarray(p_crop).astype('int')).convert("L").save( join(data_folder, "pcropped/", "mosse"+filename+".bmp") )
 				images.append(numpy.array(p_crop))
-				
+
 				# create target images
 				targetImage = array([0.]*(patch_size*patch_size)).reshape((patch_size,patch_size))
 				for xr in range(0,patch_size):
@@ -51,11 +51,11 @@ def build_patches(data):
 						targetImage[yr,xr] = math.exp(-(((xr-nux)*(xr-nux))+((yr-nuy)*(yr-nuy)))/(0.5*0.5))
 				#Image.fromarray((targetImage*255).astype('int')).convert("L").save("test_target.bmp")
 				targetImages.append(targetImage)
-							
+
 			if i % 1000 == 0:
 				print i
 			i += 1
-		
+
 		# preprocess
 		images = [im.astype(numpy.uint16) for im in images]
 		images = [numpy.log(im+1) for im in images]
@@ -64,7 +64,7 @@ def build_patches(data):
 		images = [im/norm(im) for im in images]
 		# cosine windows
 		images = [cosine_window(im) for im in images]
-		
+
 		# fft of images
 		images = [fft.fft2(im) for im in images]
 		targetImages = [fft.fft2(ti) for ti in targetImages]
@@ -80,9 +80,9 @@ def build_patches(data):
 				import pdb;pdb.set_trace()
 			top += targetImages[ir]*conjugate(images[ir])
 			bottom += images[ir]*conjugate(images[ir])
-				
-		filter = top/bottom 
-		
+
+		filter = top/bottom
+
 		# optionally store filters as normalized images, for validation
 		filres = fft.ifft2(filter)
 		fil = filres.real
@@ -93,17 +93,17 @@ def build_patches(data):
 		fil = numpy.floor(fil)
 		Image.fromarray(fil.astype('int')).convert("L").save( join(data_folder, "svmImages/", "svm"+str(r)+".bmp") )
 		#
-		
+
 		#fi = open("./svmFilters/filter"+str(r)+".pickle", "w")
 		#pickle.dump(clf.coef_, fi)
 		#fi.close()
-		
+
 		filter_real = map(lambda x: x.real, filter.flatten().tolist())
 		filter_imag = map(lambda x: x.imag, filter.flatten().tolist())
 		filter = [filter_real, filter_imag]
-		
+
 		filters.append(filter)
-	
+
 	# output for standard model:
 	#filteroutput = [filters[f][r] for r in range(0, patch_size*patch_size) for f in range(0, num_patches)]
 	filteroutput = filters
@@ -113,7 +113,7 @@ def build_patches(data):
 	patchModel['weights'] = filteroutput
 	patchModel['numPatches'] = num_patches
 	patchModel['patchType'] = 'MOSSE'
-	
+
 	return patchModel
 
 def cosine_window(ar):
