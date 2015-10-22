@@ -14,12 +14,14 @@ Note the annotations included here and the ones used in clmtrackr are slightly d
 
 Images from the MUCT database can be downloaded from https://code.google.com/p/muct/downloads/list by running:
 ```
+cd pdm_builder/data
 python download_muct.py
 ```
 The images will be placed in the folder *./data/images*.
 
 A set of facial images found online can be downloaded by running:
 ```
+cd pdm_builder/data
 python download_more.py
 ```
 Please note that these images are not public domain, and this set of images should therefore not be shared or reproduced anywhere without prior consent from the copyright owners.
@@ -29,11 +31,13 @@ Please note that these images are not public domain, and this set of images shou
 To train a model, make sure you have *numpy*, *scipy*, *scikit-learn*, *scikit-image* and *PIL* installed. If you have *pip* installed, install them by running:
 
 ```
-pip install numpy scipy scikit-learn scikit-image PIL
+pip install numpy scipy scikit-learn scikit-image pillow
 ```
+Note: On OSX, you may have to run as sudo in order to install into the /Library/Python folder.
 
-To train a model, run pdm_builder.py:
+To train a model, run pdm_builder.py. From the main folder type:
 ```
+cd pdm_builder
 python pdm_builder.py
 ```
 Model will be output as *model.js*. Some configuration settings for the model training can be set in *./buildlib/config.py*.
@@ -44,7 +48,7 @@ Open *./annotater/main.html* with a browser. Load images to annotate by pushing 
 
 Points that are obstructed (by hair, clothes, etc.) should not be used for training the classifiers. To avoid this, hold down shift while clicking the points, so that the point turns red. This means that the point will be used only for creating the facial model, not the classifiers.
 
-Note that annotations will automatically be saved in html5 local storage, so you don't need to save the data between sessions or images. To write out the annotated data, click "save file". The browser will save a file called *annotations.csv* to the default download folder. Note that this file will include all annotations currently in the local storage. 
+Note that annotations will automatically be saved in html5 local storage, so you don't need to save the data between sessions or images. To write out the annotated data, click "save file". The browser will save a file called *annotations.csv* to the default download folder. Note that this file will include all annotations currently in the local storage.
 
 *annotations.csv* is a semicolon-separated value file of the following format :
 ```
