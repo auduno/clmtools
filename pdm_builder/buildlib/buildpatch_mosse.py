@@ -3,7 +3,7 @@ from PIL import Image
 from numpy import array, sqrt, square, fft, mean, zeros
 from numpy.linalg import norm
 from numpy.ma import conjugate
-from os.path import isfile, join
+from os.path import join
 
 data_folder = config.data_folder
 num_patches = config.num_patches

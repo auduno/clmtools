@@ -3,7 +3,7 @@ import numpy, random, os, config, re
 from sklearn.svm import SVC
 from sklearn import preprocessing
 from os import listdir
-from os.path import isfile, join
+from os.path import join
 from PIL import Image
 
 data_folder = config.data_folder
@@ -65,8 +65,10 @@ def getScoring(data, mean, weights=False):
 		i += 1
 
 	print "getting negative examples from face images"
+
 	# get negative examples from face images
-	negfiles = [f for f in listdir(join(data_folder , "images/")) if isfile(join(data_folder, "images/",f))]
+	negfiles = [f for f in listdir(join(data_folder , "images/")) if config.valid_file("images/",f)]
+
 	for filename in negfiles:
 		if filename.endswith(".jpg") or filename.endswith(".png"):
 				im = Image.open(join(data_folder, "images/", filename), "r")
@@ -92,7 +94,13 @@ def getScoring(data, mean, weights=False):
 
 	print "getting negative examples from landscape images"
 	# get negative examples from landscape images
-	negfiles = [f for f in listdir( join(data_folder, "negatives/")	 ) if isfile( join(data_folder, "negatives/",f) )]
+
+	negfiles = [f for f in listdir( join(data_folder, "negatives/") ) if config.valid_file("negatives/",f)]
+
+	if len(negfiles) == 0:
+		print "you have no 'negative' images in the ./negatives/ folder"
+		exit(1)
+
 	for filename in negfiles:
 		im = Image.open( join(data_folder, "negatives/", filename) , "r")
 		im = im.convert("L")

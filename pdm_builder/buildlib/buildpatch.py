@@ -3,7 +3,7 @@ import numpy, pickle, random, os, config
 from numpy import array, sqrt, square
 from numpy.linalg import norm
 from os import listdir
-from os.path import isfile, join
+from os.path import join
 from PIL import Image
 from scipy.ndimage.filters import sobel
 from sklearn.svm import SVR, SVC
@@ -93,7 +93,7 @@ def build_patches(data, gradient=True, lbp=True, weights=None, optimize_params=F
 			i += 1
 
 		# get negative examples from landscape images
-		negfiles = [f for f in listdir( join(data_folder, "negatives/")	 ) if isfile( join(data_folder, "negatives/",f) )]
+		negfiles = [f for f in listdir( join(data_folder, "negatives/")	) if config.valid_file("negatives/",f)]
 		for filename in negfiles:
 			im = Image.open( join(data_folder, "negatives/", filename) , "r")
 			im = im.convert("L")
