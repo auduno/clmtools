@@ -71,6 +71,7 @@ def getScoring(data, mean, weights=False):
 
 	for filename in negfiles:
 		if filename.endswith(".jpg") or filename.endswith(".png"):
+			try:
 				im = Image.open(join(data_folder, "images/", filename), "r")
 				im = im.convert("L")
 				ranwidth = int(round(im.size[0]*0.3))
@@ -91,6 +92,8 @@ def getScoring(data, mean, weights=False):
 					p_crop_img.save(join(data_folder, "pcropped/", "neg_"+filename+"_mask.bmp"))
 
 					negatives.append(p_crop2.flatten())
+			except IOError:
+				print "could not load invalid image file: " + join(data_folder, "images/", filename)
 
 	print "getting negative examples from landscape images"
 	# get negative examples from landscape images

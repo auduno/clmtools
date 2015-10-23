@@ -27,21 +27,28 @@ def preprocess(coordfiles, mirror=True, useNotVisiblePoints=True, crop=True):
 		if not os.path.exists(os.path.join(config.images,li[0])):
 			print "Could not find file %s in %s" % (li[0], config.images)
 			continue
-		
-		coor = []
-		not_visible_coor = []
-		filenames.append(li[0])
 
-		for r in xrange(0, num_patches):
-			i = (r*3)+1
-			if li[i+2] == "false":
-				not_visible_coor.append(r)
-			coor.append(float(li[i]))
-			coor.append(float(li[i+1]))
-		
-		single_coor = numpy.array(coor).reshape((num_patches,2))
-		coordinates.append(single_coor)
-		not_visible.append(not_visible_coor)
+		try:
+			# load image
+			im = Image.open(os.path.join(config.images,li[0]), "r")
+
+			coor = []
+			not_visible_coor = []
+			filenames.append(li[0])
+
+			for r in xrange(0, num_patches):
+				i = (r*3)+1
+				if li[i+2] == "false":
+					not_visible_coor.append(r)
+				coor.append(float(li[i]))
+				coor.append(float(li[i+1]))
+
+			single_coor = numpy.array(coor).reshape((num_patches,2))
+			coordinates.append(single_coor)
+			not_visible.append(not_visible_coor)
+		except IOError:
+			print "Could not load invalid image file: " + config.images + li[0]
+
 	fi.close()
 
 	if len(coordinates) == 0:

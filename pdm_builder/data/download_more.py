@@ -192,6 +192,12 @@ for fi, url in files.iteritems():
     # download
     try:
       r = requests.get(url, stream=True)
+
+      # some of these images dont exist anymore. so don't download since it
+      # ruins the pdm_builder.py
+      if r.status_code != 200:
+        continue
+
       if 'Content-Length' in r.headers:
         size = int(r.headers['Content-Length'].strip())
         bytes = 0
