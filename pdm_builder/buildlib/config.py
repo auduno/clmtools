@@ -1,3 +1,9 @@
+from os.path import basename, isfile, join
+
+def valid_file(d, f):
+  fn = join(data_folder, d, f)
+  return isfile(fn) and not (f.startswith(".") or f.lower().endswith(".md"))
+
 # mirror scheme
 mirror_map = [14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,19,20,21,22,15,16,17,18,\
     28,29,30,31,32,23,24,25,26,27,33,40,39,38,37,36,35,34,41,43,42,50,49,\
