@@ -230,7 +230,8 @@ for fi, url in files.iteritems():
       shutil.move(os.path.join("./",fi), "./images")
     #except KeyError:
     #  import pdb;pdb.set_trace()
-    except:
-      print "Could not find image at the url: %s" % (url)
+    except Exception, e:
+      print "Error downloading from the URL\nURL=%s\nerror=%s" % (url, e.message)
+
 
 print "Done!"
