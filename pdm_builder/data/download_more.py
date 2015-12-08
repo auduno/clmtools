@@ -187,6 +187,9 @@ files = {
 	 "863846941_4f2d5a4009_z.jpg" : "http://farm2.staticflickr.com/1368/863846941_4f2d5a4009_z.jpg?zz=1",
 }
 
+if not os.path.exists('images'):
+  os.mkdir('images')
+
 for fi, url in files.iteritems():
   if not os.path.exists(os.path.join("./images",fi)):
     # download
