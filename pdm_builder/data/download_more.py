@@ -2,7 +2,7 @@ import tarfile, shutil, os, requests
 
 print "Please note that most of these images are not in the public domain. "
 print "Using the images for training a model is considered 'transformative use' and thus 'fair use'. "
-print "You are however, due to copyright, still not allowed to share or reproduce this set of images, publically or privately, in any way. "
+print "You are however, due to copyright, still not allowed to share or reproduce this set of images, publicly or privately, in any way. "
 print "Please respect these rules. Press any key to continue."
 raw_input()
 
