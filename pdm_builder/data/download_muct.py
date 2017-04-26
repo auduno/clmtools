@@ -2,11 +2,11 @@ import tarfile, shutil, os, requests
 
 #MUCT database
 files = {
-	"muct-a-jpg-v1.tar.gz" : "http://muct.googlecode.com/files/muct-a-jpg-v1.tar.gz",
-	"muct-b-jpg-v1.tar.gz" : "http://muct.googlecode.com/files/muct-b-jpg-v1.tar.gz",
-	"muct-c-jpg-v1.tar.gz" : "http://muct.googlecode.com/files/muct-c-jpg-v1.tar.gz",
-	"muct-e-jpg-v1.tar.gz" : "http://muct.googlecode.com/files/muct-e-jpg-v1.tar.gz",
-}
+	"muct-a-jpg-v1.tar.gz" : "https://github.com/StephenMilborrow/muct/raw/master/muct-a-jpg-v1.tar.gz",
+	"muct-b-jpg-v1.tar.gz" : "https://github.com/StephenMilborrow/muct/raw/master/muct-b-jpg-v1.tar.gz",
+	"muct-c-jpg-v1.tar.gz" : "https://github.com/StephenMilborrow/muct/raw/master/muct-c-jpg-v1.tar.gz",
+	"muct-e-jpg-v1.tar.gz" : "https://github.com/StephenMilborrow/muct/raw/master/muct-e-jpg-v1.tar.gz",
+	}
 
 for fi, url in files.iteritems():
 	# download

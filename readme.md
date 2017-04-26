@@ -12,7 +12,7 @@ Note the annotations included here and the ones used in clmtrackr are slightly d
 
 ### Downloading training data
 
-Images from the MUCT database can be downloaded from https://code.google.com/p/muct/downloads/list by running:
+Images from the MUCT database can be downloaded by running:
 ```
 cd pdm_builder/data
 python download_muct.py
