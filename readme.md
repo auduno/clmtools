@@ -61,5 +61,5 @@ To train a model from these annotated images, modify the variables *images* and 
 
 The placement of the points used in the annotations for the models in clmtrackr look roughly like this:
 
-![annotations](https://dl.dropboxusercontent.com/u/10557805/clmtools/annotations2b.jpg)
+![annotations](https://auduno.github.io/clmtools/images/annotations2b.jpg)
 
