@@ -2,7 +2,7 @@ import tarfile, shutil, os, requests
 
 print "Please note that most of these images are not in the public domain. "
 print "Using the images for training a model is considered 'transformative use' and thus 'fair use'. "
-print "You are however, due to copyright, still not allowed to share or reproduce this set of images, publically or privately, in any way. "
+print "You are however, due to copyright, still not allowed to share or reproduce this set of images, publicly or privately, in any way. "
 print "Please respect these rules. Press any key to continue."
 raw_input()
 
@@ -187,6 +187,9 @@ files = {
 	 "863846941_4f2d5a4009_z.jpg" : "http://farm2.staticflickr.com/1368/863846941_4f2d5a4009_z.jpg?zz=1",
 }
 
+if not os.path.exists('images'):
+  os.mkdir('images')
+
 for fi, url in files.iteritems():
   if not os.path.exists(os.path.join("./images",fi)):
     # download
@@ -227,7 +230,8 @@ for fi, url in files.iteritems():
       shutil.move(os.path.join("./",fi), "./images")
     #except KeyError:
     #  import pdb;pdb.set_trace()
-    except:
-      print "Could not find image at the url: %s" % (url)
+    except Exception, e:
+      print "Error downloading from the URL\nURL=%s\nerror=%s" % (url, e.message)
+
 
 print "Done!"
